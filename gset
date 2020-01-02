@@ -1,0 +1,171 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  gset
+# Doel:     Rapporteer wijzigingen in de configuratie-database na een
+#           wijziging met de GUI
+# Gebruik:  In het terminalvenster:
+#           gset
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2015-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=08.01.20
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Toon wijzigingen in de configuratie-database na een wijziging uitgevoerd met de
+grafische werkomgeving (GUI).
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare CONFIG_A=''
+declare CONFIG_B=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    CONFIG_A=$(mktemp -t "$PROGNAME-A-XXXXXXXXXX.lst")
+    dump_configuratie_database A "$CONFIG_A"
+    gebruiker_wijzigt
+    CONFIG_B=$(mktemp -t "$PROGNAME-B-XXXXXXXXXX.lst")
+    dump_configuratie_database B "$CONFIG_B"
+    rapporteer_database_wijzigingen "$CONFIG_A" "$CONFIG_B"
+}
+
+dump_configuratie_database() {
+    local fase=${1:-fase?}
+    local output_file=${2:-output_file?}
+
+    gsettings list-recursively > "$output_file" 2> /dev/null
+
+    sort --unique --output="$output_file" "$output_file"
+
+    toon_tekst "Inhoud configuratie-database vastgelegd ('$fase')."
+}
+
+gebruiker_wijzigt() {
+    toon_tekst "Voer nu de wijziging uit in de grafische werkomgeving."
+    read -rp 'Druk op de Enter-toets wanneer gereed (Enter) ' </dev/tty
+}
+
+rapporteer_database_wijzigingen() {
+    local output_file1=${1:-output_file1?}
+    local output_file2=${2:-output_file2?}
+    local -i diff_rc=0
+
+    toon_tekst "Wijzigingen in de configuratie-database,
+< is de oude   instelling ('A'),
+> is de nieuwe instelling ('B'):"
+    set +o errexit
+    diff "$output_file1" "$output_file2" | grep --regexp='[>|<]'
+    diff_rc=${PIPESTATUS[0]}
+    set -o errexit
+    if [[ $diff_rc -eq 0 ]]; then
+        toon_tekst "Geen wijzigingen in de configuratie-database."
+    else
+        toon_tekst "Voer opdracht ${BLUE}gsettings set WIJZIGING${NORMAL} uit."
+    fi
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+term_script() {
+    rm "$CONFIG_A" "$CONFIG_B"
+    quiet; exit $SUCCESS
+
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

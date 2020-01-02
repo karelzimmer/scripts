@@ -1,0 +1,189 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  spsums
+# Doel:     Splits controlebestanden op
+# Gebruik:  In het terminalvenster:
+#           spsums
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2016-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=07.02.12
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly SEARCHDIR=$HOME/Downloads
+readonly HASHPROG=sha256sum
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Splits controlebestanden op.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare ISO_FILE=''
+declare ISO_FILE_FOUND=false
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    cd "$SEARCHDIR"
+
+    for ISO_FILE in *.iso; do
+
+        if [[ ! -f "$ISO_FILE" ]]; then
+            continue
+        fi
+
+        ISO_FILE_FOUND=true
+
+        zoek_controlesom
+
+    done
+
+    if ! $ISO_FILE_FOUND; then
+        toon_waarschuwingstekst "Geen beeldbestanden (.iso) gevonden in \
+'$SEARCHDIR'."
+        rm --force -- *SHA256SUMS
+    fi
+}
+
+zoek_controlesom() {
+    local -i grep_rc=0
+
+    if [[ -e $ISO_FILE.sha256sum ]]; then
+        toon_tekst "Beeldbestand '$ISO_FILE' heeft al controlebestand \
+'$ISO_FILE.sha256sum'.\n"
+        return 0
+    else
+        set +o errexit
+        grep    "$ISO_FILE"             \
+                --exclude=*.iso         \
+                --exclude-dir=*         \
+                --no-filename           \
+                 -- *                   \
+                > "$ISO_FILE".sha256sum \
+                2> /dev/null
+        grep_rc=$?
+        set +o errexit
+
+        if [[ $grep_rc -ne 0 ]]; then
+            toon_fouttekst "Geen controlesom gevonden voor '$ISO_FILE'.\n"
+            rm --force "$ISO_FILE".sha256sum
+        else
+            toon_tekst "Controlebestand '$ISO_FILE.sha256sum' aangemaakt.\n"
+       fi
+    fi
+}
+
+term_script() {
+    if $ISO_FILE_FOUND; then
+        toon_tekst "Om de beeldbestanden (.iso) te controleren typ, of kopieer \
+en plak:
+${BLUE}cd $SEARCHDIR;$HASHPROG --check *.$HASHPROG;cd -${NORMAL}
+
+Om de controlebestanden (.sha256sums) opnieuw te downloaden typ, of kopieer en \
+plak:
+${BLUE}dlsio --checksums${NORMAL}
+
+En om vervolgens USB-sticks te maken typ, of kopieer en plak:
+${BLUE}mkusbs${NORMAL}"
+        rm --force -- *SUM*
+    fi
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

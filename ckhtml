@@ -1,0 +1,184 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  ckhtml
+# Doel:     Valideer HTML- en CSS-bestanden
+# Gebruik:  In het terminalvenster:
+#           ckhtml
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2012-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ------------------------------------------------------------------------------
+# Versie:   10.00.00    2019-08-22  Optie quiet verwijderd
+# ##############################################################################
+readonly REL_NUM=10.01.16
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly CSS_DIR=$HOME/uploads/karelzimmer.nl/httpdocs/css
+readonly HTML_DIR=$HOME/uploads/karelzimmer.nl/httpdocs/html
+
+readonly HOME_URL=https://karelzimmer.nl
+readonly CSS_URL=$HOME_URL/css
+readonly HTML_URL=$HOME_URL/html
+
+readonly CSS_VALIDATOR_URL='http://jigsaw.w3.org/css-validator/validator?uri='
+readonly HTML_VALIDATOR_URL='http://validator.w3.org/check?uri='
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Valideer HTML- en CSS-bestanden.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    local dir=''
+
+    for dir in "$CSS_DIR" "$HTML_DIR"; do
+        if [[ ! -d $dir ]]; then
+            printf '%s\n' "Map '$dir' bestaat niet." >&2
+            quiet; exit $ERROR
+        fi
+    done
+
+    if ! pgrep 'firefox' &> /dev/null; then
+        toon_waarschuwingstekst "Firefox webbrowser is niet gestart, start nu \
+Firefox."
+        read -rp 'Druk op Enter-toets wanneer gereed (Enter) ' </dev/tty
+        if ! pgrep 'firefox' &> /dev/null; then
+            toon_fouttekst 'Firefox webbrowser is niet gestart.'
+            quiet; exit $ERROR
+        fi
+    fi
+
+    valideer_css
+    valideer_html
+}
+
+valideer_css() {
+    local filename=''
+    local valurl=''
+
+    cd "$CSS_DIR"
+
+    for filename in *.css; do
+        toon_tekst "Valideer CSS  '$CSS_URL/$filename' ..."
+        valurl=$CSS_VALIDATOR_URL$CSS_URL/$filename
+        firefox "$valurl" |& $LOGCMD
+    done
+}
+
+valideer_html() {
+    local filename=''
+    local valurl=''
+
+    cd "$HTML_DIR"
+
+    for filename in *.html; do
+        toon_tekst "Valideer HTML '$HTML_URL/$filename' ..."
+        valurl=$HTML_VALIDATOR_URL$HTML_URL/$filename
+        firefox "$valurl" |& $LOGCMD
+    done
+}
+
+term_script() {
+    toon_succestekst "Controleer de Firefox tabbladen."
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

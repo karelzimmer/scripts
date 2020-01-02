@@ -1,0 +1,1033 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  deploy
+# Doel:     Distribueer scripts en overige bestanden
+# Gebruik:  In het terminalvenster:
+#           deploy
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2009-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=56.08.01
+readonly REL_DAT=2020-01-01
+readonly REL_MSG='Archiveer alleen bij verschillen in scriptbestand'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+declare -ir TXT_LEN=26
+readonly THIS_YEAR=$(date +%Y)
+readonly ARCHIVELOG=$HOME/scripts.arch/$THIS_YEAR/ARCHIVELOG
+readonly CHANGELOG=$HOME/scripts/CHANGELOG
+readonly DEBDIR=$HOME/debs/scripts
+readonly DEVMACH=pc06
+readonly DIFF=$HOME/.$PROGNAME.diff
+readonly LASTRUN=$HOME/.$PROGNAME.lastrun
+readonly REPORT=$HOME/.$PROGNAME.rpt
+readonly SCRIPTSARCHDIR=$HOME/scripts.arch/$THIS_YEAR
+readonly SCRIPTSDIR=$HOME/scripts
+readonly SITEDIR=$HOME/uploads/karelzimmer.nl/httpdocs
+
+# @public
+# Bron voor CHANGELOG, DESKTOP, MAN, PIXMAPS en SOUNDS is SCRIPTS.
+# ('rsync "${SOURCE_DEB[SCRIPTS]}" "${TARGET_DEB[SCRIPTS]}")
+readonly -A SOURCE_DEB=(
+           [CHANGELOG]="$DEBDIR/usr/local/bin/CHANGELOG"
+             [DESKTOP]="$DEBDIR/usr/local/bin"
+                 [MAN]="$DEBDIR/usr/local/bin"
+                [PDFS]="$SITEDIR/data/linux/pdfs"
+             [PIXMAPS]="$DEBDIR/usr/local/bin/.pixmaps"
+             [SCRIPTS]="$SCRIPTSDIR"
+              [SOUNDS]="$DEBDIR/usr/local/bin/.sounds"
+          [WALLPAPERS]="$HOME/Afbeeldingen/wallpapers.d"
+    )
+readonly -A TARGET_DEB=(
+           [CHANGELOG]="$DEBDIR/usr/share/doc/scripts/CHANGELOG"
+             [DESKTOP]="$DEBDIR/usr/share/applications"
+                 [DOC]="$DEBDIR/usr/share/doc/scripts"
+                 [MAN]="$DEBDIR/usr/share/man/man1"
+                [PDFS]="$DEBDIR/usr/share/doc/scripts/pdfs"
+             [PIXMAPS]="$DEBDIR/usr/share/pixmaps/scripts"
+             [SCRIPTS]="$DEBDIR/usr/local/bin"
+              [SOUNDS]="$DEBDIR/usr/share/sounds/scripts"
+    [WALLPAPERSCONFIG]="$DEBDIR/usr/share/gnome-background-properties"
+          [WALLPAPERS]="$DEBDIR/usr/share/backgrounds/scripts"
+    )
+
+# @public
+# Te synchroniseren mappen en bestanden zijn relatief t.o.v. $HOME.
+readonly -A SOURCE_TAR=(
+          [CHECKLISTS]='Documenten/Checklists'
+                [DEBS]='debs'
+                [FOTO]='Afbeeldingen/Karel/Karel_2019.jpg'
+    [ONTWIKKELSCRIPTS]='scripts.dev'
+          [PROGRAMMAS]="Programma's"
+             [SCRIPTS]='scripts'
+      [SCRIPTSARCHIEF]='scripts.arch'
+       [SLEUTELBOSSEN]='Documenten/Sleutelbossen'
+                [TODO]='ToDo'
+    )
+readonly TARGET_TAR=$SITEDIR/data/linux/arch/scripts.tar.gz
+
+# @public
+readonly -A SOURCE_UPLOADS=(
+          [CHECKLISTS]="$HOME/Documenten/Checklists"
+                [DEBS]="$HOME/debs"
+              [PDFS_1]="$HOME/Documenten"
+              [PDFS_2]="$HOME/Documenten/Checklists"
+             [SCRIPTS]="$SCRIPTSDIR"
+    )
+readonly -A TARGET_UPLOADS=(
+          [CHECKLISTS]="$SITEDIR/data/linux/documents"
+                [DEBS]="$SITEDIR/data/linux/debs"
+                [PDFS]="$SITEDIR/data/linux/pdfs"
+             [SCRIPTS]="$SITEDIR/data/linux/scripts"
+    )
+
+# @public
+readonly SOURCE_UPLOADS_OLD=$HOME/uploads
+readonly TARGET_UPLOADS_OLD=$HOME/uploads.old
+
+# @private
+# Te synchroniseren mappen en bestanden zijn relatief t.o.v. $HOME.
+readonly -A SOURCE_GOOGLE_DRIVE=(
+            [ADRESSEN]="Documenten/Adressen"
+                 [CAH]="Documenten/CaH"
+               [SCANS]="Afbeeldingen/Scans"
+       [SLEUTELBOSSEN]="Documenten/Sleutelbossen"
+    )
+readonly TARGET_GOOGLE_DRIVE='google-drive://karel.zimmer@gmail.com'
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON'elpr'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON',edit,list,password,reset'
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON" --edit --list \
+--password --reset"
+readonly USAGE="Gebruik: $PROGNAME [-e|--edit] [-l|--list] [-p|--password] \
+[-r|--reset]
+                $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Distribueer checklists, scripts, en overige bestanden.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  -e --edit           Wijzig verschillenbestand en stoppen
+  -l --list           Toon overzicht wijzigingen en stoppen
+  -p --password       Vraag om wachtwoord bij uploaden en installeren
+  -r --reset          Maak verschillenbestand leeg
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare ARCHIVED_MSG=''
+declare -i CHECKRC=0
+declare OPTION_EDIT=false
+declare OPTION_LIST=false
+declare OPTION_PASSWORD=false
+declare OPTION_RESET=false
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            -e|--edit)
+                OPTION_EDIT=true
+                shift
+                ;;
+            -l|--list)
+                OPTION_LIST=true
+                shift
+                ;;
+            -p|--password)
+                OPTION_PASSWORD=true
+                shift
+                ;;
+            -r|--reset)
+                OPTION_RESET=true
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    if [[ $HOSTNAME != "$DEVMACH" ]]; then
+        printf '%s\n' "Alleen uitvoeren op $DEVMACH." >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    wijzig_verschillenbestand $OPTION_EDIT $OPTION_RESET
+
+    if $OPTION_LIST; then
+        toon_wijzigingen
+        quiet; exit $SUCCESS
+    fi
+
+    toon_waarschuwingstekst "Wijzigingen worden niet meer meegenomen!"
+    archiveer_scriptbestanden
+    maak_scriptspakket
+    maak_scriptsarchief
+    synchroniseer_uploads
+    bepaal_wijzigingen
+    synchroniseer_uploads_oud
+    synchroniseer_google_drive
+    toon_wijzigingen
+    controleer_scripts
+    upload_website
+    installeer_scriptspakket
+}
+
+toon_wijzigingen() {
+    if [[ -s "$REPORT" ]]; then
+        cat "$REPORT"
+        while true; do
+            read -rp 'Resultaat afdrukken? (j/N) ' </dev/tty
+            case $REPLY in
+                j*|J*)
+                    lpr "$REPORT" |& $LOGCMD
+                    toon_tekst 'Overzicht is verzonden naar de printer.'
+                    break
+                    ;;
+                n*|N*|'')
+                    break
+                    ;;
+                *)
+                    echo -e "${UP_ONE_LINE}${ERASE_LINE}"
+                    continue
+                    ;;
+            esac
+        done
+    else
+        toon_tekst 'Het rapportbestand is leeg.'
+    fi
+}
+
+wijzig_verschillenbestand() {
+    local editopt=${1:-false}
+    local resetopt=${2:-false}
+
+    if $editopt && $resetopt; then
+        printf '%s\n' \
+"Specificeer optie '--reset' of optie '--edit', niet allebei." >&2
+        quiet; exit $ERROR
+    fi
+
+    if $editopt; then
+        gedit "$DIFF"
+        quiet; exit $SUCCESS
+    fi
+
+    if $resetopt; then
+        truncate    --size=0    \
+                    "$DIFF"     \
+                    "$REPORT"   |& $LOGCMD
+        toon_tekst 'Verschillenbestand is leeggemaakt.'
+    fi
+}
+
+archiveer_scriptbestanden() {
+    local archivefile=''
+    local file=''
+    local -i num_files=0
+    local size=''
+
+    verwijder_backups
+    verplaats_pdfs
+
+    if [[ ! -d $SCRIPTSARCHDIR ]]; then
+        mkdir "$SCRIPTSARCHDIR" |& $LOGCMD
+        cp  --update            \
+            --preserve          \
+            "$CHANGELOG"        \
+            "$ARCHIVELOG"       |& $LOGCMD
+    fi
+
+    if [[ -z $(find "$SCRIPTSDIR" -newer "$LASTRUN") ]]; then
+        log_tekst 'Archiveer scriptbestanden niet nodig; geen wijzigingen.'
+        ARCHIVED_MSG='Er zijn geen scriptbestanden gearchiveerd.'
+        return 0
+    fi
+
+    size=$(
+        du  --human-readable    \
+            --summarize         \
+            "$SCRIPTSDIR"       |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Archiveer scriptbestanden' "$size"
+
+    # Te verwerken scriptbestanden staan in $HOME/scripts.
+    cd "$SCRIPTSDIR"
+    for file in *; do
+
+        if [[ ! -f $file ]]; then
+            continue
+        elif [[ $file = CHANGELOG ]]; then
+            continue
+        fi
+
+        controleer_archiefmap   "$SCRIPTSARCHDIR/$file"
+        verwerk_scriptbestand   "$SCRIPTSDIR"   \
+                                "$file"         \
+                                archivefile
+
+        if ! diff "$SCRIPTSDIR/$file" "$SCRIPTSARCHDIR/$file/$archivefile" \
+&> /dev/null; then
+            cp      --update                            \
+                    --preserve                          \
+                    "$SCRIPTSDIR/$file"                 \
+                    "$SCRIPTSARCHDIR/$file/$archivefile" |& $LOGCMD
+            chmod   'a-x'                               \
+                    "$SCRIPTSARCHDIR/$file/$archivefile" |& $LOGCMD
+            (( ++num_files ))
+        fi
+    done
+    ARCHIVED_MSG="Er zijn $num_files scriptbestanden gearchiveerd."
+}
+
+verwijder_backups() {
+    local dir=''
+
+    for dir in $SOURCE_UPLOADS_OLD; do
+        find    "$dir"                      \
+                -name '*~'      -delete -or \
+                -name '*.*~'    -delete -or \
+                -name '*.bak'   -delete     |& $LOGCMD
+    done
+}
+
+verplaats_pdfs() {
+    # Vanuit gedit.
+    if ls "${SOURCE_UPLOADS[PDFS_1]}"/*.pdf &> /dev/null; then
+        mv  "${SOURCE_UPLOADS[PDFS_1]}"/*.pdf   \
+            "${TARGET_UPLOADS[PDFS]}"           |& $LOGCMD
+    fi
+
+    # Vanuit LibreOffice.
+    if ls "${SOURCE_UPLOADS[PDFS_2]}"/*.pdf &> /dev/null; then
+        mv  "${SOURCE_UPLOADS[PDFS_2]}"/*.pdf   \
+            "${TARGET_UPLOADS[PDFS]}"           |& $LOGCMD
+    fi
+}
+
+controleer_archiefmap() {
+    local archivedir=${1:-archivedir?}
+
+    if [[ ! -d $archivedir ]]; then
+        mkdir "$archivedir" |& $LOGCMD
+    fi
+}
+
+verwerk_scriptbestand() {
+    local scriptdir=${1:-scriptdir?}
+    local scriptfile=${2:-file?}
+    local _archivefile_variable=${3:-archivefile?}
+    local _archivefile_value=''
+    local release_date=''
+    local release_number=''
+    local release_message=''
+    local script=false
+
+    release_number=$(
+        awk -F= '/REL_NUM=/{print $2;exit}' "$scriptdir/$scriptfile"
+        )
+    release_date=$(
+        awk -F= '/REL_DAT=/{print $2;exit}' "$scriptdir/$scriptfile"
+        )
+    release_message=$(
+        awk -F= '/REL_MSG=/{print $2;exit}' "$scriptdir/$scriptfile"
+        )
+    echo "$scriptfile $release_number $release_date $release_message" >> \
+"$CHANGELOG"
+
+    if grep --quiet                             \
+            --regexp='^#!/bin/bash$'            \
+            --regexp='^# Bestand:  common.sh$'  \
+            "$scriptdir/$scriptfile"; then
+        script=true
+        release_number_script=$release_number
+        release_date_script=$release_date
+        release_message_script=$release_message
+        copyright_script=$(
+            awk '/^# Auteursrecht /{print substr($0,3)}' \
+"$scriptdir/$scriptfile"
+            )
+    fi
+
+    controleer_velden
+    verwerk_manpagina
+    controleer_tags
+    controleer_eindspaties
+
+    if [[ -z $release_number ]]; then
+        _archivefile_value=$scriptfile
+    else
+        _archivefile_value=${scriptfile}_${release_date}_$release_number
+    fi
+
+    # shellcheck disable=SC2086
+    eval $_archivefile_variable="'$_archivefile_value'"
+}
+
+controleer_velden() {
+    local age=''
+    local filename=''
+    local releaseday=''
+    local today=''
+    local first_part_copyright_script=''
+    local copyright_script_new=''
+
+    if grep --quiet             \
+            --regexp='^.TH '    \
+            "$scriptdir/$scriptfile"; then
+        filename=$(awk '/# Bestand: /{print $4;exit}' "$scriptdir/$scriptfile")
+        if [[ $filename != "$scriptfile" ]]; then
+            toon_fouttekst "\nIn $scriptfile:
+        '# Bestand: $filename' is ongelijk aan scriptnaam $scriptfile"
+        quiet; exit $ERROR
+        fi
+    else
+        filename=$(awk '/^# Bestand: /{print $3;exit}' "$scriptdir/$scriptfile")
+        if [[ $filename != "$scriptfile" ]]; then
+            toon_fouttekst "\nIn $scriptfile:
+        '# Bestand: $filename' is ongelijk aan scriptnaam $scriptfile"
+        quiet; exit $ERROR
+        fi
+    fi
+
+    if ! date --date="$release_date" &> /dev/null; then
+        toon_fouttekst "\nIn $scriptfile:
+    vrijgavedatum $release_date is niet geldig."
+        quiet; exit $ERROR
+    fi
+
+    today=$(date +%Y%m%d)
+    releaseday=$(date +%Y%m%d --date="$release_date")
+    if [[ $releaseday -gt $today ]]; then
+        toon_fouttekst "\nIn $scriptfile:
+    vrijgavedatum $release_date ligt in de toekomst."
+        quiet; exit $ERROR
+    fi
+
+    age=$(( today - releaseday ))
+    if [[ $age -gt 10000 ]]; then
+        toon_waarschuwingstekst "\nIn $scriptfile:
+    vrijgavedatum $release_date is meer dan een jaar oud."
+    fi
+
+    if $script && [[ $copyright_script != *"$THIS_YEAR"* ]]; then
+        printf "Gelukkig nieuwjaar, %s!\n'" "$scriptfile"
+        first_part_copyright_script=${copyright_script:0:21}
+        copyright_script_new=$first_part_copyright_script"-$THIS_YEAR Karel \
+Zimmer."
+        sed --in-place                                                  \
+            --expression="s/$copyright_script/$copyright_script_new/g"  \
+            "$scriptdir/$scriptfile"
+        copyright_script=$copyright_script_new
+    fi
+}
+
+verwerk_manpagina() {
+    local copyright_man=''
+    local manpage_changed=false
+
+    if grep --quiet             \
+            --regexp='^.TH '    \
+            "$scriptdir/$scriptfile"; then
+        if [[ $release_number != "$release_number_script" ]]; then
+            sed --in-place                                                  \
+                --expression="s/$release_number/$release_number_script/g"   \
+                "$scriptdir/$scriptfile"
+            release_number=$release_number_script
+            manpage_changed=true
+        fi
+        if [[ $release_date != "$release_date_script" ]]; then
+            sed --in-place                                                  \
+                --expression="s/$release_date/$release_date_script/g"       \
+                "$scriptdir/$scriptfile"
+            release_date=$release_date_script
+            manpage_changed=true
+        fi
+        if [[ $release_message != "$release_message_script" ]]; then
+            sed --in-place                                                  \
+                --expression="s/$release_message/$release_message_script/g" \
+                "$scriptdir/$scriptfile"
+            release_message=$release_message_script
+            manpage_changed=true
+        fi
+
+        copyright_man=$(grep --regexp='^Auteursrecht ' "$scriptdir/$scriptfile")
+        if [[ $copyright_man != "$copyright_script" ]]; then
+            sed --in-place                                          \
+                --expression="s/$copyright_man/$copyright_script/"  \
+                "$scriptdir/$scriptfile"
+            manpage_changed=true
+        fi
+
+        if $manpage_changed; then
+            man --troff "$scriptdir/$scriptfile"                |
+            ps2pdf - "${TARGET_UPLOADS[PDFS]}/$scriptfile.pdf"  |& $LOGCMD
+        fi
+    fi
+
+    echo "$scriptfile $release_number $release_date $release_message" >> \
+"$CHANGELOG"
+}
+
+controleer_tags() {
+    if grep --quiet                     \
+            --regexp='\#\X\X\X'         \
+            --regexp='\#\T\O\D\O'       \
+            --regexp='\#\F\I\X\M\E'     \
+            "$scriptdir/$scriptfile"; then
+        toon_waarschuwingstekst "\nIn $scriptfile:
+$(
+    grep    --line-number               \
+            --regexp='\#\X\X\X'         \
+            --regexp='\#\T\O\D\O'       \
+            --regexp='\#\F\I\X\M\E'     \
+            "$scriptdir/$scriptfile"
+)
+"
+        if [[ $CHECKRC -eq $SUCCESS ]]; then
+            CHECKRC=$WARNING
+        fi
+    fi
+}
+
+controleer_eindspaties() {
+    if grep --quiet         \
+            --regexp=' $'   \
+            "$scriptdir/$scriptfile"; then
+        toon_waarschuwingstekst "\nEindspaties in $scriptfile:
+$(
+    grep    --line-number   \
+            --regexp=' $'   \
+            "$scriptdir/$scriptfile"
+)
+"
+        if [[ $CHECKRC -eq $SUCCESS ]]; then
+            CHECKRC=$WARNING
+        fi
+    fi
+}
+
+maak_scriptspakket() {
+    local size_compressed=''
+    local size_original=''
+
+    cd "$SCRIPTSDIR"
+    chmod 'u=rwx,g=rx,o=rx' -- *
+    chmod 'a-x' -- *.* _*
+    chmod 'u=rw,g=r,o=r' -- CHANGELOG .pixmaps/* .sounds/* \
+../Afbeeldingen/wallpapers.d/*
+
+    sort    --version-sort          \
+            --unique                \
+            "$CHANGELOG"            \
+            --output="$CHANGELOG"   |& $LOGCMD
+    cat     "$CHANGELOG"            \
+            >> "$ARCHIVELOG"
+    sort    --version-sort          \
+            --unique                \
+            "$ARCHIVELOG"           \
+            --output="$ARCHIVELOG"  |& $LOGCMD
+
+    # Deze rsync is inclusief CHANGELOG, *.desktop, *.1, .icons/, en .sounds/.
+    rsync   --archive                   \
+            --delete                    \
+            "${SOURCE_DEB[SCRIPTS]}"/   \
+            "${TARGET_DEB[SCRIPTS]}"    |& $LOGCMD
+
+    rsync   --archive                   \
+            --delete                    \
+            "${SOURCE_DEB[PDFS]}"/      \
+            "${TARGET_DEB[PDFS]}"       |& $LOGCMD
+    rsync   --archive                       \
+            --delete                        \
+            "${SOURCE_DEB[WALLPAPERS]}"/    \
+            "${TARGET_DEB[WALLPAPERS]}"     |& $LOGCMD
+
+    if [[ -z $(find "$DEBDIR" -newer "$LASTRUN") ]]; then
+        log_tekst 'Maak scriptspakket niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    size_original=$(
+        du  --human-readable    \
+            --summarize         \
+            "$DEBDIR"           |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Maak scriptspakket' "$size_original"
+    verwerk_scriptspakketbestanden
+    if [[ $(find "${SOURCE_DEB[WALLPAPERS]}" -newer "$LASTRUN") ]]; then
+        maak_wallpapapers_config
+    fi
+
+    fakeroot    dpkg-deb                    \
+                --build                     \
+                "$DEBDIR"                   \
+                "${TARGET_UPLOADS[DEBS]}"   |& $LOGCMD
+
+    size_compressed=$(
+        du  --human-readable                                \
+            --summarize                                     \
+            "${TARGET_UPLOADS[DEBS]}/scripts_1.0_all.deb"   |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB -> %sB].\n" 'Scriptspakket gemaakt' \
+"$size_original" "$size_compressed"
+}
+
+verwerk_scriptspakketbestanden() {
+    mv      "${SOURCE_DEB[CHANGELOG]}"  \
+            "${TARGET_DEB[CHANGELOG]}"  |& $LOGCMD
+    gzip    --best                      \
+            --force                     \
+            "${TARGET_DEB[CHANGELOG]}"  |& $LOGCMD
+
+    # Deze rm target-files is nodig i.v.m. wildcarded rsync.
+    rm      --force "${TARGET_DEB[DESKTOP]}"/*
+    rsync   --archive                           \
+            --delete                            \
+            --remove-source-files               \
+            "${SOURCE_DEB[DESKTOP]}"/*.desktop  \
+            "${TARGET_DEB[DESKTOP]}"            |& $LOGCMD
+
+    # Deze rm target-files is nodig i.v.m. wildcarded rsync.
+    rm      --force "${TARGET_DEB[MAN]}"/*
+    rsync   --archive                   \
+            --delete                    \
+            --remove-source-files       \
+            "${SOURCE_DEB[MAN]}"/*.1    \
+            "${TARGET_DEB[MAN]}"        |& $LOGCMD
+    gzip    --best                      \
+            --force                     \
+            "${TARGET_DEB[MAN]}"/*.1    |& $LOGCMD
+
+    rsync   --archive                   \
+            --delete                    \
+            --remove-source-files       \
+            "${SOURCE_DEB[PIXMAPS]}"/   \
+            "${TARGET_DEB[PIXMAPS]}"    |& $LOGCMD
+    rmdir   "${SOURCE_DEB[PIXMAPS]}"    |& $LOGCMD
+
+    rsync   --archive                   \
+            --delete                    \
+            --remove-source-files       \
+            "${SOURCE_DEB[SOUNDS]}"/    \
+            "${TARGET_DEB[SOUNDS]}"     |& $LOGCMD
+    rmdir   "${SOURCE_DEB[SOUNDS]}"     |& $LOGCMD
+}
+
+maak_wallpapapers_config() {
+    local wallpapers_config_file='scripts-wallpapers.xml'
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' \
+        >  "${TARGET_DEB[WALLPAPERSCONFIG]}/$wallpapers_config_file"
+    echo '<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">' \
+        >> "${TARGET_DEB[WALLPAPERSCONFIG]}/$wallpapers_config_file"
+    echo '<wallpapers>' \
+        >> "${TARGET_DEB[WALLPAPERSCONFIG]}/$wallpapers_config_file"
+
+    # Te verwerken bureaubladachtergronden staan in $(SOURCE_DEB[WALLPAPERS]}.
+    cd "${SOURCE_DEB[WALLPAPERS]}"
+
+    for wallpaper in *; do
+        echo "    <wallpaper>
+        <name>${wallpaper%.*}</name>
+        <filename>/usr/share/backgrounds/scripts/$wallpaper</filename>
+        <options>zoom</options>
+        <pcolor>#000000</pcolor>
+        <scolor>#000000</scolor>
+        <shade_type>solid</shade_type>
+    </wallpaper>"   \
+        >> "${TARGET_DEB[WALLPAPERSCONFIG]}/$wallpapers_config_file"
+    done
+    echo '</wallpapers>'    \
+        >> "${TARGET_DEB[WALLPAPERSCONFIG]}/$wallpapers_config_file"
+}
+
+maak_scriptsarchief() {
+    local size_compressed=''
+    local size_original=''
+    local temp_tar=''
+
+    # Te synchroniseren mappen en bestanden in SOURCE_TAR zijn relatief t.o.v.
+    # $HOME.
+    cd "$HOME"
+
+    if [[ -z $(find "${SOURCE_TAR[@]}" -newer "$LASTRUN") ]]; then
+        log_tekst 'Maak scriptsarchief niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    size_original=$(
+        du  --human-readable    \
+            --summarize         \
+            --total             \
+            "${SOURCE_TAR[@]}"  |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Maak scriptsarchief' "$size_original"
+
+    # 'mktemp -t' --> 'mktemp -u' (-u = --dry-run) geeft rechten 0600 ---> 0644.
+    temp_tar=/tmp/$(mktemp -u "$PROGNAME-XXXXXXXXXX-$(basename "$TARGET_TAR")")
+    tar --create            \
+        --gzip              \
+        "${SOURCE_TAR[@]}"  \
+        --file="$temp_tar"  |& $LOGCMD
+
+    size_compressed=$(
+        du  --human-readable    \
+            --summarize         \
+            --total             \
+            "$temp_tar"         |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB -> %sB].\n" 'Scriptsarchief gemaakt' \
+"$size_original" "$size_compressed"
+
+    mv  "$temp_tar"     \
+        "$TARGET_TAR"   |& $LOGCMD
+}
+
+synchroniseer_uploads() {
+    local size=''
+
+    if [[ -z $(find "${SOURCE_UPLOADS[CHECKLISTS]}" \
+"${SOURCE_UPLOADS[SCRIPTS]}" -newer "$LASTRUN") ]]; then
+        log_tekst 'Synchroniseer uploads niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    size=$(
+        du  --human-readable                \
+            --summarize                     \
+            --total                         \
+            --exclude='.*'                  \
+            "${SOURCE_UPLOADS[CHECKLISTS]}" \
+            "${SOURCE_UPLOADS[SCRIPTS]}"    |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Synchroniseer uploads' "$size"
+
+    rsync   --archive                           \
+            --delete                            \
+            "${SOURCE_UPLOADS[CHECKLISTS]}"/    \
+            "${TARGET_UPLOADS[CHECKLISTS]}"     |& $LOGCMD
+
+    # Sla verborgen mappen over, niet nodig voor de site.
+    rsync   --archive                       \
+            --delete                        \
+            --exclude='.*'                  \
+            "${SOURCE_UPLOADS[SCRIPTS]}"/   \
+            "${TARGET_UPLOADS[SCRIPTS]}"    |& $LOGCMD
+}
+
+bepaal_wijzigingen() {
+    local -i diff_rc=0
+
+    touch "$DIFF" |& $LOGCMD
+    set +o errexit
+    diff    --brief                 \
+            --recursive             \
+            "$SOURCE_UPLOADS_OLD"   \
+            "$TARGET_UPLOADS_OLD"   \
+            >> "$DIFF"
+    diff_rc=$?
+    set -o errexit
+    if [[ $diff_rc -eq 0 ]]; then
+        toon_tekst 'Geen wijzigingen.'
+        return 0
+    fi
+}
+
+synchroniseer_uploads_oud() {
+    local size=''
+
+    if [[ -z $(find "$SOURCE_UPLOADS_OLD" -newer "$LASTRUN") ]]; then
+        log_tekst 'Synchroniseer uploads-oud niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    size=$(
+        du  --human-readable        \
+            --summarize             \
+            "$SOURCE_UPLOADS_OLD"   |
+            awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Synchroniseer uploads-oud' "$size"
+
+    rsync   --archive               \
+            --delete                \
+            "$SOURCE_UPLOADS_OLD"/  \
+            "$TARGET_UPLOADS_OLD"   |& $LOGCMD
+}
+
+synchroniseer_google_drive() {
+    local dir=''
+    local file=''
+    local size=''
+
+    if [[ -z $(find "${SOURCE_GOOGLE_DRIVE[@]}" -newer "$LASTRUN") ]]; then
+        log_tekst 'Synchroniseer Google Drive niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    size=$(
+        du  --human-readable            \
+            --summarize                 \
+            --total                     \
+            "${SOURCE_GOOGLE_DRIVE[@]}" |
+        awk 'END{print $1}'
+        )
+    printf "%-${TXT_LEN}s [%sB] ...\n" 'Synchroniseer Google Drive' "$size"
+
+    if gio info "$TARGET_GOOGLE_DRIVE" &> /dev/null; then
+        gio mount --unmount "$TARGET_GOOGLE_DRIVE"
+        gio mount "$TARGET_GOOGLE_DRIVE"
+    else
+        gio mount "$TARGET_GOOGLE_DRIVE"
+    fi
+
+    # Te synchroniseren mappen en bestanden in SOURCE_GOOGLE_DRIVE zijn
+    # relatief t.o.v. $HOME.
+    cd "$HOME"
+
+    toon_tekst '-- zoek nieuwe mappen en nieuwe of gewijzigde bestanden...'
+    while read -r file; do
+        if [[ -d "$file" ]]; then
+            if ! gio    info                            \
+                        "$TARGET_GOOGLE_DRIVE/$file"    \
+                        &> /dev/null; then
+                toon_tekst "   -- aanmaken $file ..."
+                gio mkdir       \
+                    --parent    \
+                    "$TARGET_GOOGLE_DRIVE/$file"
+            fi
+        else
+            size=$(
+                du  --human-readable    \
+                    "$file"             |
+                awk 'END{print $1}'
+                )
+            toon_tekst "   -- uploaden $file [${size}B] ..."
+            gio copy    \
+                "$file" \
+                "$TARGET_GOOGLE_DRIVE/$(dirname "$file")"
+        fi
+    done < <(find "${SOURCE_GOOGLE_DRIVE[@]}" -newer "$LASTRUN" -print)
+
+    gio mount --unmount "$TARGET_GOOGLE_DRIVE"
+}
+
+toon_wijzigingen() {
+    local hdr=''
+    local -i num_of_changes=0
+    local record=''
+    local temp_record=''
+
+    touch   "$DIFF.temp1"
+    # Wijzig verschillenlijst (van DIFF naar DIFF.temp1)
+    # -------------------------------------------------
+    # Verwijder aan het begin 'Bestanden ' en alles vanaf ' en /'.
+    # Verwijder aan het begin 'Alleen in ' en vervang '<pad>: <bestand>' door
+    # '<pad>/<bestand>'.
+    while read -r record; do
+        temp_record=$record
+
+        temp_record=${temp_record#Bestanden }
+        temp_record=${temp_record% en /*}
+
+        temp_record=${temp_record#Alleen in }
+        temp_record=${temp_record//: /\//}
+        temp_record=$(basename "$temp_record")
+
+        echo "_ $temp_record" >> "$DIFF.temp1"
+    done < "$DIFF"
+
+    sort --unique "$DIFF.temp1"  >> "$DIFF.temp2"
+
+    toon_tekst "$ARCHIVED_MSG"
+    num_of_changes=$(wc --lines < "$DIFF.temp2")
+    hdr="--- Overzicht wijzigingen ($num_of_changes) ---"
+    touch "$REPORT" |& $LOGCMD
+    pr  --date-format='%a %d %b %Y' \
+        --form-feed                 \
+        --header="$hdr"             \
+        "$DIFF.temp2"               |
+    tee "$REPORT"
+
+    rm  "$DIFF".temp* |& $LOGCMD
+}
+
+controleer_scripts() {
+    local -i checkrc=0
+
+    if [[ -z $(find "$SCRIPTSDIR" -newer "$LASTRUN") ]]; then
+        log_tekst 'Controleer scripts niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    toon_tekst 'Controleer scripts met ivpsh...'
+
+    set +o errexit
+    "$SCRIPTSDIR/ivpsh"
+    checkrc=$?
+    set -o errexit
+    if [[ $CHECKRC -eq $SUCCESS ]]; then
+        CHECKRC=$checkrc
+    fi
+}
+
+upload_website() {
+    local ftp_set='set ssl:verify-certificate no'
+    local ftp_from=$SITEDIR
+    local ftp_to=/httpdocs
+    local ftp_cmd="mirror --reverse --delete $ftp_from $ftp_to"
+    local ftp_login=$HOME/.$PROGNAME.lftp
+    local ftp_site=server106.hosting2go.nl
+    local ftp_user=kzimmer
+
+    if [[ -z $(find "$SITEDIR" -newer "$LASTRUN") ]]; then
+        log_tekst 'Upload website niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    if [[ $CHECKRC -eq $SUCCESS ]]; then
+        if $OPTION_PASSWORD || [[ ! -f $ftp_login ]]; then
+            read -rsp "FTP-wachtwoord voor $ftp_site: "
+            echo "$REPLY" > "$ftp_login"
+            toon_tekst ''
+            chmod   'u=rw,g=,o='    \
+                    "$ftp_login"    |& $LOGCMD
+        fi
+        toon_tekst 'Upload website...'
+        lftp    --user "$ftp_user"                  \
+                --password "$(cat "$ftp_login")"    \
+                -e "$ftp_set; $ftp_cmd; exit"       \
+                "$ftp_site"
+    else
+        toon_waarschuwingstekst "Als gevolg van scriptfouten wordt het \
+uploaden van de website niet uitgevoerd."
+    fi
+}
+
+installeer_scriptspakket() {
+    local sudo_pw=$HOME/.$PROGNAME.sudo
+
+    if [[ -z $(find "$DEBDIR" -newer "$LASTRUN") ]]; then
+        log_tekst 'Installeer scriptspakket niet nodig; geen wijzigingen.'
+        return 0
+    fi
+
+    if [[ $CHECKRC -eq $SUCCESS ]]; then
+        if $OPTION_PASSWORD || [[ ! -f $sudo_pw ]]; then
+            read -rsp "[sudo] wachtwoord voor $USER: "
+            echo "$REPLY" > "$sudo_pw"
+            chmod   'u=rw,g=,o='    \
+                    "$sudo_pw"      |& $LOGCMD
+            toon_tekst ''
+        fi
+        toon_tekst 'Installer scriptspakket met getstarted ...'
+        # shellcheck disable=SC2024
+        sudo    --stdin                     \
+                "$SCRIPTSDIR/getstarted"    \
+                < "$sudo_pw"
+        sudo    --reset-timestamp           |& $LOGCMD
+    else
+        toon_waarschuwingstekst "Als gevolg van scriptfouten wordt het \
+installeren van het scriptspakket niet uitgevoerd."
+    fi
+}
+
+term_script() {
+    touch "$LASTRUN"
+    toon_succestekst 'Wijzigingen worden vanaf nu weer meegenomen.'
+
+    if [[ $CHECKRC -ne 0 ]]; then
+        quiet; exit $WARNING
+    else
+        quiet; exit $SUCCESS
+    fi
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

@@ -1,0 +1,84 @@
+.\" # ##########################################################################
+.\" # Bestand:  ivpsh.1
+.\" # Doel:     Man-pagina van script ivpsh
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man ivpsh
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=07.05.00
+.\" REL_DAT=2019-12-20
+.\" REL_MSG='Tekst "Overslaan:" verwijderd'
+.\"
+.TH IVPSH "1" "2019-12-20" "07.05.00" "ivpsh"
+
+.SH NAAM
+ivpsh \- Installatie Verificatie Procedure (IVP) voor scripts
+
+.SH SAMENVATTING
+.B ivpsh
+[OPTIE...]
+
+.SH BESCHRIJVING
+\fBivpsh\fR voert een Installatie Verificatie Procedure (IVP) uit voor scripts.
+
+Voert een IVP uit waarbij uitvoerbare scripts technisch en functioneel worden
+getest.
+.br
+Als de IVP succesvol is uitgevoerd kan script \fBdeploy\fR worden uitgevoerd, en
+de scripts geplaatst worden op https://karelzimmer.nl.
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tivpsh').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2015-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+
+.SH ZIE OOK
+\fBcommon.sh\fR(1),
+\fBdeploy\fR(1),
+\fBhttps://karelzimmer.nl\fR

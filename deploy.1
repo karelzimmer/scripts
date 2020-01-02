@@ -1,0 +1,160 @@
+.\" # ##########################################################################
+.\" # Bestand:  deploy.1
+.\" # Doel:     Man-pagina van script deploy
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man deploy
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=56.08.01
+.\" REL_DAT=2020-01-01
+.\" REL_MSG='Archiveer alleen bij verschillen in scriptbestand'
+.\"
+.TH DEPLOY "1" "2020-01-01" "56.08.01" "deploy"
+
+.SH NAAM
+deploy \- Distribueer checklists, scripts, en overige bestanden
+
+.SH SAMENVATTING
+.B deploy
+[OPTIE...]
+
+.SH BESCHRIJVING
+\fBdeploy\fR distribueert scripts en overige bestanden, en zorgt voor
+versiecontrole van bestanden.
+
+Dit om de bestanden veilig te stellen en te kunnen uploaden voor algemeen
+gebruik.
+.br
+Mijn eigen Continuous Integration and Delivery (CI/CD) Pipeline.
+.br
+Dit script dient uitgevoerd te worden op de ontwikkelmachine.
+
+Met optie \fB--edit\fR kan het verschillenbestand gewijzigd worden.
+
+Met optie \fB--list\fR wordt het verschillenbestand getoond.
+
+Met optie \fB--password\fR kan het wachtwoord voor het uploaden en \
+installeren opgegeven worden.
+
+Met optie \fB--print\fR wordt het verschillenbestand geprint.
+
+Met optie \fB--reset\fR wordt het verschillenbestand leeggemaakt.
+
+Standaard worden de volgende acties uitgevoerd:
+.RS
+1. Archiveer scriptbestanden.
+   Dit is inclusief inhoudelijke controles,
+man-pagina bijwerken, en CHANGELOG bijwerken.
+.br
+2. Maak scriptpakket en scriptarchief.
+.br
+3. Synchroniseer uploads.
+.br
+4. Bepaal en toon wijzigingen.
+.br
+5. Synchroniseer uploads-oud.
+.br
+6. Synchroniseer Google Drive.
+.br
+7. Controleer scripts.
+.br
+8. Upload website.
+.br
+9. Installer scriptspakket.
+.RE
+Mijn eigen CI/CD Pipeline :-).
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-e\fR, \fB--edit\fR
+Wijzig het verschillenbestand.
+.TP
+\fB-l\fR, \fB--list\fR
+Toon overzicht wijzigingen en stoppen.
+.TP
+\fB-p\fR, \fB--password\fR
+Vraag om wachtwoord bij uploaden en installeren.
+.TP
+\fB-r\fR, \fB--reset\fR
+Maak het verschillenbestand leeg.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tdeploy').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/share/doc/scripts/CHANGELOG.gz
+.RS
+Wijzigingshistorie.
+.RE
+
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+.SH MAPPEN
+/home/karel/Documenten/Checklists
+.RS
+Checklists.
+.RE
+
+/home/karel/scripts
+.RS
+Scripts.
+.RE
+
+/home/karel/scripts.arch
+.RS
+Scriptsarchief.
+.RE
+
+/home/karel/scripts.dev
+.RS
+Ontwikkelscripts.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2009-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBckhtml\fR(1),
+\fBcommon.sh\fR(1),
+\fBgetstarted\fR(1),
+\fBivpsh\fR(1),
+\fBhttps://karelzimmer.nl\fR

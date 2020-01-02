@@ -1,0 +1,295 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  mkusbs
+# Doel:     Maak opstartbare USB-sticks
+# Gebruik:  In het terminalvenster:
+#           mkusbs
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2014-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=16.02.06
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly SOURCE_DEFAULT=$HOME/Downloads
+readonly DEVICE_DEFAULT=/dev/sdb
+readonly RUN_AS_SUPERUSER=true
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON's:'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON',source:'
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON' --source'
+readonly USAGE="Gebruik: $PROGNAME [-s|--source=BRON] [--] [APPARAAT]
+               $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT
+
+$ARGUMENT_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...] [--] [APPARAAT]
+
+Maak opstartbare USB-sticks.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  $ARGUMENT_LONG_SHORT
+
+  -s --source=BRON    Gebruik beelbestanden (.iso) in opgegeven map
+$OPTIONS_HELP_COMMON
+
+Argument:
+  APPARAAT            Gebruik opgegeven USB-stick-device"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare ARGUMENT_DEVICE=false
+declare DEVICE=''
+declare DEVICE_ARGUMENT=''
+declare NO_FILES_FOUND=true
+declare OPTION_SOURCE=false
+declare SOURCE_ARGUMENT=''
+declare SOURCEDIR=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            -s|--source)
+                if $OPTION_SOURCE; then
+                    printf '%s\n%s\n' \
+"Optie '$1' éénmaal opgeven." "$HELPLINE" >&2
+                    quiet; exit $ERROR
+                else
+                    OPTION_SOURCE=true
+                    SOURCE_ARGUMENT=$2
+                fi
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    while [[ "$*" ]]; do
+        if $ARGUMENT_DEVICE; then
+            printf '%s\n%s\n' 'Maximaal één argument opgeven.' "$HELPLINE" >&2
+            quiet; exit $ERROR
+        else
+            ARGUMENT_DEVICE=true
+            DEVICE_ARGUMENT=$1
+        fi
+        shift
+    done
+
+    if $OPTION_SOURCE; then
+        SOURCEDIR=$SOURCE_ARGUMENT
+    else
+        SOURCEDIR=$SOURCE_DEFAULT
+    fi
+    if [[ ! -d $SOURCEDIR ]]; then
+        printf '%s/n' "Map '$SOURCEDIR' bestaat niet." >&2
+        quiet; exit $ERROR
+    fi
+
+    if $ARGUMENT_DEVICE; then
+        DEVICE=$DEVICE_ARGUMENT
+    else
+        DEVICE=$DEVICE_DEFAULT
+    fi
+
+    controleer_gebruiker
+    vraag_invoer
+}
+
+vraag_invoer() {
+    toon_waarschuwingstekst "
+De volgende /dev/sd schijven en partities zijn aanwezig:"
+    if  findmnt --list               \
+                --options=rw            \
+                --output=SOURCE,TARGET  |
+        grep    '^/dev/sd'; then
+        toon_waarschuwingstekst "
+===================================================
+'$DEVICE' wordt gebruikt als doel en OVERSCHREVEN!
+==================================================="
+        while true; do
+            read -rp 'Is dit OK? (j/N) ' </dev/tty
+            case $REPLY in
+                j*|J*)
+                    break
+                    ;;
+                n*|N*|'')
+                    printf '%s\n%s\n%s\n' \
+"Gebruik argument APPARAAT om een ander device op te geven." "$HELPLINE" \
+"Gestopt."
+                    quiet; exit $SUCCESS
+                    ;;
+                *)
+                    continue
+                    ;;
+            esac
+        done
+    else
+        toon_waarschuwingstekst "
+==================================================
+Geen '$DEVICE' gevonden om te gebruiken als doel!
+=================================================="
+        printf '%s\n%s\n' \
+"Gebruik argument APPARAAT om een ander device op te geven." "$HELPLINE"
+        quiet; exit $WARNING
+    fi
+}
+
+verwerk_invoer() {
+    local usbname=''
+    local file=''
+
+    printf '%s\n' "Lees beeldbestanden (.iso)..."
+    NO_FILES_FOUND=true
+
+    for file in "$SOURCEDIR"/*.iso; do
+
+        if [[ ! -f "$file" ]]; then
+            continue
+        fi
+
+        NO_FILES_FOUND=false
+        usbname=$(basename "$file" .iso | tr '-' ' ')
+
+        printf "\n${BOLD}%s${NORMAL}\n" "$usbname"
+
+        while true; do
+            read -rp 'maken/Overslaan/stoppen? (m/O/s) ' </dev/tty
+            case $REPLY in
+                m*|M*)
+                    maak_usb_stick "$file"
+                    break
+                    ;;
+                o*|O*|'')
+                    printf '%s\n' 'Overgeslagen.'
+                    break
+                    ;;
+                s*|S*)
+                    printf '%s\n' 'Gestopt.'
+                    quiet; exit $SUCCESS
+                    ;;
+                *)
+                    echo -e "${UP_ONE_LINE}${ERASE_LINE}"
+                    continue
+                    ;;
+            esac
+        done
+    done
+
+    if $NO_FILES_FOUND; then
+        toon_waarschuwingstekst "Geen beeldbestanden (.iso) gevonden in map \
+'$SOURCEDIR'."
+    fi
+}
+
+maak_usb_stick() {
+    local dd_from=${1:-dd_from?}
+
+    read -rp "Plaats USB-stick '$usbname', gevolgd door Enter (Enter) " \
+</dev/tty
+    if [[ -e $DEVICE ]]; then
+        toon_tekst "USB-stick '$usbname' wordt gemaakt..."
+
+        dd  if="$dd_from"   \
+            of=$DEVICE      \
+            bs=4M           |& $LOGCMD
+
+        sync |& $LOGCMD
+
+        toon_succestekst "USB-stick '$usbname' is gemaakt."
+
+        toon_tekst "Ter controle wordt een KVM virtuele machine gestart; druk \
+op Enter (Enter) " </dev/tty
+        if !    qemu-system-x86_64  -enable-kvm     \
+                                    -m 1024         \
+                                    -hda $DEVICE    |& $LOGCMD; then
+            true
+        fi
+
+        read -rp "Onkoppel en verwijder de USB-stick '$usbname', gevolgd door \
+Enter (Enter) " </dev/tty
+
+    else
+        toon_waarschuwingstekst "USB-stick '$usbname' is niet aanwezig op \
+$DEVICE."
+    fi
+}
+
+term_script() {
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+
+main "$@"
+
+# Einde script

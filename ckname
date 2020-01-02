@@ -1,0 +1,205 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  ckname
+# Doel:     Controleer NTFS map/bestandsnamen, en bestandsnaamlengte
+# Gebruik:  In het terminalvenster:
+#           ckname
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ---------------------------------------------------------------------------
+# Auteursrecht (c) 2012-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=11.01.16
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ---------------------------------------------------------------------------
+# Globale constanten
+# ---------------------------------------------------------------------------
+declare -ir MAX_FILENAME_LEN=142
+readonly START_DFLT=$PWD
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+                [--] [MAP]
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...] [--] [MAP]
+
+Controleer NTFS map/bestandsnamen, en bestandsnaamlengte.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON
+
+Argument:
+  MAP                 Begin te controleren vanaf map MAP"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare ARGUMENT_MAP=false
+declare MAP_ARGUMENT=''
+declare START_MAP=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    while [[ "$*" ]]; do
+        if $ARGUMENT_MAP; then
+            printf '%s\n%s\n' 'Maximaal één argument opgeven.' "$HELPLINE" >&2
+            quiet; exit $ERROR
+        else
+            ARGUMENT_MAP=true
+            MAP_ARGUMENT=$1
+        fi
+        shift
+    done
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    if $ARGUMENT_MAP; then
+        START_MAP=$MAP_ARGUMENT
+    else
+        START_MAP=$START_DFLT
+    fi
+
+    if [[ ! -d $START_MAP ]]; then
+        printf '%s/n' "Map '$START_MAP' bestaat niet." >&2
+        quiet; exit $ERROR
+    fi
+
+    zoek_bestanden_en_mappen
+}
+
+zoek_bestanden_en_mappen() {
+    local dirname
+    local file
+    local basename
+    local good
+    local -i count=0
+    local -i length=0
+
+    # Het maakt niet uit of in de bestandsnaam speciale tekens voorkomen zoals
+    # tab, spatie, enz.  Hiervoor zorgt de find met print0,en de read met IFS=
+    # en als delimiter de null character die niet mag voorkomen in een
+    # bestandsnaam.  N.B.: In Linux is alles een bestand!
+    while IFS= read -r -d $'\0' file; do
+
+        dirname=$(dirname "$file")
+        basename=$(basename "$file")
+        length=${#basename}
+
+        # Verwijder de slechte tekens, \ is escape voor " en :
+        good=$(echo "$file" | tr --delete '?"\\<>*|:')
+
+        if [[ $file != "$good" ]]; then
+            (( ++count ))
+            if [[ -d "$file" ]]; then
+                toon_tekst "BadName  DIR '$file'."
+            elif [[ -f "$file" ]]; then
+                toon_tekst "BadName FILE '$basename' in map '$dirname'."
+            else
+                toon_tekst "BadName SYML '$file'."
+            fi
+        fi
+
+        if [[ $length -gt $MAX_FILENAME_LEN ]]; then
+            (( ++count ))
+            if [[ -d "$file" ]]; then
+                toon_tekst "BadLen.  DIR '$basename'."
+            else
+                toon_tekst "BadLen. FILE '$basename' in map '$dirname'."
+            fi
+        fi
+
+    done < <(find "$START_MAP" -type f -print0 -or -type d -print0 -or -type l \
+-print0)
+
+    if [[ $count -eq 0 ]]; then
+        toon_succestekst "Er zijn geen fouten gevonden."
+    elif [[ $count -eq 1 ]]; then
+        toon_waarschuwingstekst 'Er is één fout gevonden.'
+    else
+        toon_waarschuwingstekst "Er zijn $count fouten gevonden."
+    fi
+}
+
+term_script() {
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

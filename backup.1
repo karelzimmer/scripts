@@ -1,0 +1,210 @@
+.\" # ##########################################################################
+.\" # Bestand:  backup.1
+.\" # Doel:     Man-pagina van script backup
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man backup
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=35.00.06
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH BACKUP "1" "2019-12-11" "35.00.06" "backup"
+
+.SH NAAM
+backup \- Maak een back-up (reservekopie) van mappen en bestanden
+
+.SH SAMENVATTING
+.B backup
+[OPTIE...] [--] [\fISELECTIE\fR...]
+
+.SH BESCHRIJVING
+\fBbackup\fR maakt een back-up (reservekopie) van mappen en bestanden.
+
+Standaard, tenzij \fISELECTIE\fRs zijn opgegeven, wordt er een back-up
+gemaakt van de favorieten en Persoonlijke mappen van alle gebruikers, d.i. \
+/home en /root.
+
+Opbouw van de back-up bestandsnaam is \
+'backup-COMPUTERNAAM-JJJJ-MM-DD-UU.MM.SS.NNN.tar'.
+
+Standaard locatie voor het plaatsen van het back-upbestand is ALLE
+\fIaangekoppelde-media\fR zoals (externe) harddisks en USB-sticks.
+Die \fIaangekoppelde-media\fR wordt gezocht op /media.
+
+Met optie \fB--target\fR kunnen meerdere locaties opgegeven worden.
+
+Mappenstructuur \fIaangekoppelde-media\fR/backups/COMPUTERNAAM wordt
+gebruikt.
+Deze structuur wordt aangemaakt indien nodig.
+
+Standaard worden de volgende bestanden en mappen NIET in de back-up
+opgenomen:
+.RS
+/dev
+.br
+/home/*/.adobe/Flash_Player/AssetCache
+.br
+/home/*/.cache
+.br
+/home/*/.ccache
+.br
+/home/.ecryptfs
+.br
+/home/gast
+.br
+/home/*/.gvfs
+.br
+/home/*/.recent-applications.xbel
+.br
+/home/*/.recently-used.xbel
+.br
+/home/*/snap/*/*/.cache
+.br
+/home/*/snapshots
+.br
+/home/*/.steam/root
+.br
+/home/*/.thumbnails
+.br
+/home/*/.xsession-errors
+.br
+/proc
+.br
+/run
+.br
+/sys
+.br
+/tmp
+.RE
+
+Met optie \fB--exclude\fR zijn extra mappen en bestanden uit te sluiten.
+
+Voor het aanmaken van de back-up wordt tar gebruikt.
+De inhoud van de back-up is op te vragen met opdracht:
+.RS
+\fBtar tvf \fIBESTAND\fR\fB [--wildcards \fISELECTIE\fR\fB...]\fR
+.RE
+
+Met opdracht \fBrestore\fR zijn individuele -of alle- bestanden en mappen uit
+een back-up te herstellen.
+
+In een grafische werkomgeving zoals GNOME (e.g. Ubuntu) kan \fBbackup\fR ook
+worden gestart door te zoeken naar start, klik op 'Start Hier', kies 'Menu \
+Opdrachten' en vervolgens 'backup'.
+Dan zal een back-up worden gemaakt van alle Persoonlijke mappen, d.i. /home en \
+/root.
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+
+Een argument dat verplicht of optioneel is voor een lange optie, is dat ook voor
+de overeenkomstige korte optie.
+.TP
+\fB-t\fR, \fB--target=\fIDOEL\fR
+Plaats back-upbestand in map \fIDOEL\fR.
+Mag meerdere keren opgegeven worden.
+.TP
+\fB-x\fR, \fB--exclude=\fIUITSLUITEN\fR
+Sluit bestanden of mappen \fIUITSLUITEN\fR uit.
+Mag meerdere keren opgegeven worden.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tbackup').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+/home/*/.backup-gnome-favorites
+.RS
+Backup GNOME favorieten (per-user).
+.RE
+
+/root/.backup-exclude-dflt
+.RS
+Standaard uit te sluiten bestanden en mappen.
+.RE
+
+/root/.backup-exclude-opt
+.RS
+Opgegeven uit te sluiten bestanden en mappen.
+.RE
+
+.SH MAPPEN
+/media
+.RS
+Als er geen \fIDOEL\fR is opegegeven wordt de back-up in deze map geplaatst.
+.RE
+
+.SH NOTITIES
+.IP " 1." 4
+Checklist installatie
+.RS 4
+https://karelzimmer.nl
+.RE
+
+.SH VOORBEELDEN
+
+\fBbackup\fR
+.RS
+Maak een back-up van de favorieten en Persoonlijke mappen.
+Hiervoor is ook starter 'Backup' beschikbaar.
+.RE
+
+\fBbackup --target /tmp /home/*/Documenten\fR
+.RS
+Maak een back-up van alle documenten en plaats deze in map /tmp.
+.RE
+
+\fBbackup --exclude '*.JPG' /home/*/Afbeeldingen\fR
+.RS
+Maak een back-up van alle foto's maar geen JPG's.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2007-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBcheckname\fR(1),
+\fBcommon.sh\fR(1),
+\fBrestore\fR(1),
+\fBstarthere\fR(1),
+\fBhttps://karelzimmer.nl\fR

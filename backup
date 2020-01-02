@@ -1,0 +1,609 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  backup
+# Doel:     Maak een back-up (reservekopie) van bestanden en mappen
+# Gebruik:  Met starter 'Start Hier', kies 'Menu Opdrachten' (aanbevolen)
+#      of:  In het terminalvenster:
+#           backup
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2007-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=35.00.06
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly EXCLUDEFILE_DEFAULT=/root/.$PROGNAME-exclude-dflt
+readonly EXCLUDEFILE_DEFAULT_CONTENT="\
+/dev
+/home/*/.adobe/Flash_Player/AssetCache
+/home/*/.cache
+/home/*/.ccache
+/home/.ecryptfs
+/home/gast
+/home/*/.gvfs
+/home/*/.recent-applications.xbel
+/home/*/.recently-used.xbel
+/home/*/snap/*/*/.cache
+/home/*/snapshots
+/home/*/.steam/root
+/home/*/.thumbnails
+/home/*/.xsession-errors
+/proc
+/run
+/sys
+/tmp"
+readonly EXCLUDEFILE_OPTIONAL=/root/.$PROGNAME-exclude-opt
+readonly RUN_AS_SUPERUSER=true
+readonly SELECTION_DEFAULT_0=/home
+readonly SELECTION_DEFAULT_1=/root
+readonly TARGET_DEFAULT_1=/media
+readonly TARGET_DEFAULT_2='Backups'
+readonly TARGET_DEFAULT_3=$HOSTNAME
+readonly TIMESTAMP=$(date +%Y.%m.%d_%H.%M.%S.%3N)
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON't:x:'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON',target:,exclude:'
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON" --target \
+--exclude"
+readonly USAGE="Gebruik: $PROGNAME [-t|--target=DOEL]... \
+[-x|--exclude=UITSLUITEN]...
+                $OPTIONS_USAGE_COMMON
+                [SELECTIE...]
+
+$OPTIONS_LONG_SHORT
+
+$ARGUMENT_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...] [--] [SELECTIE...]
+
+Maak van elk gegeven SELECTIE bestanden en mappen een back-up (reservekopie).
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  $ARGUMENT_LONG_SHORT
+
+  -t --target=DOEL    Plaats back-upbestand in map DOEL
+  -x --exclude=UITSLUITEN
+                      Sluit opgegeven bestand of map uit
+$OPTIONS_HELP_COMMON
+
+Argument:
+  SELECTIE            Maak back-up van opgegeven mappen en bestanden"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare -a EXCLUDE_ARGUMENT=''
+declare -A MEDIA=( )
+declare ARGUMENT_SELECTION=false
+declare -a SELECTION=''
+declare -a SELECTION_ARGUMENT=''
+declare -A TARGET=( )
+declare -a TARGET_ARGUMENT=''
+declare BACKUP_CREATED=false
+declare BACKUPFILE=''
+declare BACKUPSIZE_HUMAN=''
+declare FILE_TO_COPY=''
+declare -i FILE_TO_COPY_SIZE=0
+declare -i SELECTIONSIZE_MACHINE=0
+declare NO_MEDIA_FOUND=true
+declare OPTION_EXCLUDE=false
+declare OPTION_TARGET=false
+declare SEARCH4=''
+declare SELECTIONSIZE_HUMAN=''
+declare SPACE_OK=true
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local exclude=''
+    local -i exclude_arg_num=0
+    local -i getopt_rc=0
+    local -i select_arg_num=0
+    local -i select_num=0
+    local -i target_arg_num=0
+    local medium=''
+    local parsed=''
+    local select=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+
+    while true; do
+        case $1 in
+            -t|--target)
+                OPTION_TARGET=true
+                TARGET_ARGUMENT[$target_arg_num]=$2
+                (( ++target_arg_num ))
+                shift 2
+                ;;
+            -x|--exclude)
+                OPTION_EXCLUDE=true
+                EXCLUDE_ARGUMENT[$exclude_arg_num]=$2
+                (( ++exclude_arg_num ))
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    while [[ "$*" ]]; do
+        ARGUMENT_SELECTION=true
+        SELECTION_ARGUMENT[$select_arg_num]=$1
+        (( ++select_arg_num ))
+        shift
+    done
+
+    if $OPTION_TARGET; then
+        for target_num in "${!TARGET_ARGUMENT[@]}"; do
+            MEDIA[$target_num]=${TARGET_ARGUMENT[$target_num]}
+        done
+    else
+        # Vul associatief array met aangekoppelde media-namen.
+        # ----------------------------------------------------
+        # - findmnt wordt door mount aangeraden, speciaal voor in scripts.
+        # - options=rw, alleen beschrijfbare bestandssystemen gebruiken (en
+        #   bijvoorbeeld geen iso9660, d.i. een CD of DVD).
+        while read -r record; do
+            MEDIA[$record]=$record
+        done < <(
+            findmnt --list          \
+                    --noheadings    \
+                    --options=rw    \
+                    --output=TARGET |
+            grep    --regexp=$TARGET_DEFAULT_1
+            )
+    fi
+    for medium in "${!MEDIA[@]}"; do
+        NO_MEDIA_FOUND=false
+        if $OPTION_TARGET; then
+            TARGET[$medium]=${MEDIA[$medium]}
+        else
+            TARGET[$medium]=${MEDIA[$medium]}/$TARGET_DEFAULT_2/\
+$TARGET_DEFAULT_3
+        fi
+    done
+    if $NO_MEDIA_FOUND; then
+        toon_waarschuwingstekst "Geen enkel aangekoppeld medium gevonden om \
+een back-upbestand op te plaatsen"
+        quiet; exit $WARNING
+    fi
+
+    if $OPTION_EXCLUDE; then
+        for exclude in "${EXCLUDE_ARGUMENT[@]}"; do
+            if [[ ! -e $exclude ]]; then
+                printf '%s\n' \
+"$PROGNAME: bestand of map '$exclude' bestaat niet" >&2
+                quiet; exit $ERROR
+            fi
+        done
+    fi
+
+    if $ARGUMENT_SELECTION; then
+        for select in "${SELECTION_ARGUMENT[@]}"; do
+            if [[ ! -e $select ]]; then
+                printf '%s\n' \
+"$PROGNAME: bestand of map '$select' bestaat niet" >&2
+                quiet; exit $ERROR
+            fi
+        done
+        for select_num in "${!SELECTION_ARGUMENT[@]}"; do
+            SELECTION[$select_num]="$(readlink --canonicalize \
+"${SELECTION_ARGUMENT[$select_num]}")"
+        done
+    else
+        SELECTION[0]=$SELECTION_DEFAULT_0
+        SELECTION[1]=$SELECTION_DEFAULT_1
+    fi
+
+    SEARCH4=${PROGNAME}_$HOSTNAME
+    BACKUPFILE=${SEARCH4}_$TIMESTAMP.tar
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    local size_num=0
+    local medium=''
+    local record=''
+    local size_unit=''
+    local text=''
+    local title="$PROGNAME"
+
+    # Oud spul opruimen.
+    rm  --force                             \
+        /home/*/."$PROGNAME"-exclude-dflt   \
+        /home/*/."$PROGNAME"-exclude-opt
+
+    echo  "$EXCLUDEFILE_DEFAULT_CONTENT" > "$EXCLUDEFILE_DEFAULT"
+
+    if $OPTION_EXCLUDE; then
+        for exclude in "${EXCLUDE_ARGUMENT[@]}"; do
+            echo "$exclude" >> "$EXCLUDEFILE_OPTIONAL"
+        done
+    else
+        echo '' > "$EXCLUDEFILE_OPTIONAL"
+    fi
+
+    text='Bepaal grootte van de back-up...'
+    if $OPTION_GUI; then
+        # Met "|& zenity --progress" worden globale variabelen uit
+        # aangeroepen functies niet doorgegeven, vandaar de
+        # 'process substitution' met "> >(zenity ...)".
+        bepaal_selectiegrootte      > >(
+        zenity  --progress          \
+                --pulsate           \
+                --auto-close        \
+                --no-cancel         \
+                --width=600         \
+                --height=50         \
+                --title="$title"    \
+                --text="$text"      \
+                2> /dev/null)
+    else
+        toon_tekst "$text"
+        bepaal_selectiegrootte
+    fi
+
+    for medium in "${!MEDIA[@]}"; do
+        if [[ ! -d ${TARGET[$medium]} ]]; then
+            mkdir   --parents               \
+                    "${TARGET[$medium]}"    |& $LOGCMD
+        fi
+
+        if ! $OPTION_TARGET; then
+            chmod   'a=rwx'                                 \
+                    "${MEDIA[$medium]}/$TARGET_DEFAULT_2"   |& $LOGCMD
+        fi
+        chmod       'a=rwx'                 \
+                    "${TARGET[$medium]}"    |& $LOGCMD
+
+        toon_tekst "${BOLD}Medium ${TARGET[$medium]} ...${NORMAL}"
+
+        if [[ "$medium" == /media/* ]] &&
+            ! df "$medium" --output=source | grep --quiet luks; then
+            toon_waarschuwingstekst "Het is aanbevolen dit medium \
+LUKS-encrypted te maken."
+        fi
+
+        text='Controleer beschikbare ruimte...'
+        if $OPTION_GUI; then
+            controleer_ruimte           > >(
+            zenity  --progress          \
+                    --pulsate           \
+                    --auto-close        \
+                    --no-cancel         \
+                    --width=600         \
+                    --height=50         \
+                    --title="$title"    \
+                    --text="$text"      \
+                    2> /dev/null)
+        else
+            toon_tekst "$text"
+            controleer_ruimte
+        fi
+
+        if $SPACE_OK; then
+            if $BACKUP_CREATED; then
+                size_num=${BACKUPSIZE_HUMAN%?}
+                size_unit=${BACKUPSIZE_HUMAN: -1}
+                text="Kopieer back-up van $FILE_TO_COPY [$size_num \
+${size_unit}iB] naar ${TARGET[$medium]} ..."
+                kopieer_backup
+                controleer_gekopieerde_bestanden
+            else
+                size_num=${SELECTIONSIZE_HUMAN%?}
+                size_unit=${SELECTIONSIZE_HUMAN: -1}
+                text="Maak back-up van ${SELECTION[*]} [$size_num \
+${size_unit}iB] naar ${TARGET[$medium]} ..."
+                maak_backup
+            fi
+        fi
+    done
+
+    if ! $BACKUP_CREATED; then
+        toon_waarschuwingstekst "\nGeen enkele back-up is gemaakt"
+        quiet; exit $WARNING
+    fi
+}
+
+bepaal_selectiegrootte() {
+    SELECTIONSIZE_HUMAN=$(
+        du  --apparent-size                         \
+            --block-size=1                          \
+            --exclude-from="$EXCLUDEFILE_DEFAULT"   \
+            --exclude-from="$EXCLUDEFILE_OPTIONAL"  \
+            --human-readable                        \
+            --summarize                             \
+            --total                                 \
+            "${SELECTION[@]}"                       \
+            2> /dev/null                            |
+        awk 'END{print $1}'
+        )
+
+    SELECTIONSIZE_MACHINE=$(
+        du  --apparent-size                         \
+            --block-size=1                          \
+            --exclude-from="$EXCLUDEFILE_DEFAULT"   \
+            --exclude-from="$EXCLUDEFILE_OPTIONAL"  \
+            --summarize                             \
+            --total                                 \
+            "${SELECTION[@]}"                       \
+            2> /dev/null                            |
+        awk 'END{print $1}'
+        )
+}
+
+controleer_ruimte() {
+    local filesys=''
+    local free_human=''
+    local -i free_bytes=0
+    local -i sourcedir_size_bytes=0
+    local mounted=''
+
+    sourcedir_size_bytes=$(
+        du  --apparent-size                         \
+            --block-size=1                          \
+            --exclude-from="$EXCLUDEFILE_DEFAULT"   \
+            --exclude-from="$EXCLUDEFILE_OPTIONAL"  \
+            --summarize                             \
+            --total                                 \
+            "${SELECTION[@]}"                       \
+            2> /dev/null                            |
+        awk 'END{print $1}'
+        )
+    free_bytes=$(
+        df  --block-size=1          \
+            "${TARGET[$medium]}"    |
+        awk 'END{print $4}'
+        )
+
+    if [[ $sourcedir_size_bytes -gt $free_bytes ]]; then
+        free_human=$(
+            df  --human-readable        \
+                "${TARGET[$medium]}"    |
+            awk 'END{print $4}'
+            )
+        filesys=$(
+            df  "${TARGET[$medium]}"    |
+            awk 'END{print $1}'
+            )
+        mounted=$(
+            df  "${TARGET[$medium]}"    |
+            awk 'END{print $6}'
+            )
+        toon_waarschuwingstekst "
+Kan geen (kopie) back-up plaatsen.
+
+Te weinig ruimte op $mounted (bestandssysteem $filesys)
+voor het plaatsen (van een kopie) van back-up $BACKUPFILE.
+
+Benodigd is ${SELECTIONSIZE_HUMAN}iB, beschikbaar is ${free_human}iB.
+
+Maak ruimte vrij op $mounted (bestandssysteem $filesys),
+of gebruik een ander medium met minimaal ${SELECTIONSIZE_HUMAN}iB beschikbaar \
+zoals een USB-stick of externe harddisk."
+        SPACE_OK=false
+    else
+        SPACE_OK=true
+    fi
+}
+
+maak_backup() {
+    local -i size_num=0
+    local size_unit=''
+    local -i tar_rc=0
+
+    TO_DELETE="${TARGET[$medium]}/$BACKUPFILE"
+
+    set +o errexit
+    if ! $ARGUMENT_SELECTION; then
+        maak_backup_favorieten
+    fi
+    if $OPTION_GUI; then
+        tar --create                                \
+            --directory=/                           \
+            --exclude-from="$EXCLUDEFILE_DEFAULT"   \
+            --exclude-from="$EXCLUDEFILE_OPTIONAL"  \
+            --file=-                                \
+            "${SELECTION[@]}"                       \
+            2> /dev/null                            |
+        (
+        pv  --numeric                               \
+            --size="$SELECTIONSIZE_MACHINE"         \
+            > "${TARGET[$medium]}/$BACKUPFILE"
+        )   2>&1                                    |
+        zenity  --progress                          \
+                --width=600                         \
+                --height=50                         \
+                --title="$title"                    \
+                --text="$text"                      \
+                --auto-close                        \
+                --no-cancel                         \
+                --time-remaining                    \
+                2> /dev/null
+        tar_rc=$?
+    else
+        toon_tekst "$text"
+        tar --create                                \
+            --directory=/                           \
+            --exclude-from="$EXCLUDEFILE_DEFAULT"   \
+            --exclude-from="$EXCLUDEFILE_OPTIONAL"  \
+            --file=-                                \
+            "${SELECTION[@]}"                       \
+            2> /dev/null                            |
+        pv  --size="$SELECTIONSIZE_MACHINE"         \
+            > "${TARGET[$medium]}/$BACKUPFILE"
+        tar_rc=$?
+    fi
+    set -o errexit
+    sync
+    TO_DELETE=''
+    if [[ $tar_rc -ne 0 ]]; then
+        toon_waarschuwingstekst 'Back-up is niet geheel foutloos.'
+        quiet; exit $WARNING
+    fi
+
+    BACKUP_CREATED=true
+
+    bepaal_bestandsgrootte
+    size_num=${BACKUPSIZE_HUMAN%?}
+    size_unit=${BACKUPSIZE_HUMAN: -1}
+    toon_succestekst "Back-up '$BACKUPFILE' [$size_num ${size_unit}iB] is \
+gemaakt."
+
+    FILE_TO_COPY="${TARGET[$medium]}/$BACKUPFILE"
+
+    FILE_TO_COPY_SIZE=$(
+        du  --apparent-size \
+            --block-size=1  \
+            "$FILE_TO_COPY" |
+        awk '{print $1}'
+        )
+}
+
+maak_backup_favorieten() {
+    local user=''
+
+    for dir in /home/*; do
+        user=$(basename "$dir")
+        sudo su --login "$user"         \
+                --command "gsettings get org.gnome.shell favorite-apps > \
+/home/$user/.$PROGNAME-gnome-favorites" |& $LOGCMD
+    done
+}
+
+bepaal_bestandsgrootte() {
+    BACKUPSIZE_HUMAN=$(
+        du  --apparent-size                     \
+            --block-size=1                      \
+            --human-readable                    \
+            "${TARGET[$medium]}/$BACKUPFILE"    |
+        awk '{print $1}'
+        )
+}
+
+kopieer_backup() {
+    local -i cp_rc=0
+    local -i size_num=0
+    local size_unit=''
+
+    TO_DELETE="${TARGET[$medium]}/$BACKUPFILE"
+
+    if $OPTION_GUI; then
+        (
+        pv  --numeric               \
+            "$FILE_TO_COPY" > "${TARGET[$medium]}/$(basename "$FILE_TO_COPY")"
+        )   2>&1                    |
+        zenity  --progress          \
+                --width=600         \
+                --height=50         \
+                --title="$title"    \
+                --text="$text"      \
+                --auto-close        \
+                --no-cancel         \
+                --time-remaining    \
+                2> /dev/null
+        cp_rc=$?
+    else
+        toon_tekst "$text"
+        pv "$FILE_TO_COPY" > "${TARGET[$medium]}/$(basename "$FILE_TO_COPY")"
+        cp_rc=$?
+    fi
+    sync
+
+    TO_DELETE=''
+    if [[ $cp_rc -ne 0 ]]; then
+        toon_waarschuwingstekst 'Kopie is niet geheel foutloos.\n'
+        quiet; exit $WARNING
+    fi
+
+    size_num=${BACKUPSIZE_HUMAN%?}
+    size_unit=${BACKUPSIZE_HUMAN: -1}
+    toon_succestekst "Back-up '$BACKUPFILE' [$size_num ${size_unit}iB] is \
+gekopieerd."
+}
+
+controleer_gekopieerde_bestanden() {
+    local -i copied_bytes=0
+
+    copied_bytes=$(
+        du  --apparent-size                     \
+            --block-size=1                      \
+            "${TARGET[$medium]}/$BACKUPFILE"    |
+        awk '{print $1}'
+        )
+
+    if [[ $copied_bytes -ne $FILE_TO_COPY_SIZE ]]; then
+        toon_fouttekst "De naar '${TARGET[$medium]}' gekopieerde back-up
+is niet even groot als de eerder gemaakte back-up.\n
+Verwijder de laatste back-up van '${TARGET[$medium]}'
+en start (indien gewenst) $PROGNAME opnieuw."
+        quiet; exit $ERROR
+    fi
+}
+
+term_script() {
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

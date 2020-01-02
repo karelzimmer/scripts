@@ -1,0 +1,223 @@
+.\" # ##########################################################################
+.\" # Bestand:  instal.1
+.\" # Doel:     Man-pagina van script instal
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man instal
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=54.03.01
+.\" REL_DAT=2020-01-02
+.\" REL_MSG='Variabele snap_loc toegeveogd aan check_aptd()'
+.\"
+.TH INSTAL "1" "2020-01-02" "54.03.01" "instal"
+
+.SH NAAM
+instal \- Installeer apps en wijzig systeeminstellingen
+
+.SH SAMENVATTING
+.B instal
+[OPTIE...] [--] [\fIAPP\fR...] [\fIBESTAND\fR...]
+
+.SH BESCHRIJVING
+\fBinstal\fR installeert apps en wijzigt systeeminstellingen.
+
+Standaard wordt met \fBinstal\fR het bestand
+/usr/local/bin/instal-<distributie>-<versie>-\fIEDITIE\fR.sh verwerkt voor
+algemene apps en systeeminstellingen voor de huidige <distributie>
+(e.g. ubuntu), <versie> (e.g. 18.04), en \fIEDITIE\fR (standaard=desktop).
+
+Als bestand
+/usr/local/bin/instal-<distributie>-<versie>-\fIEDITIE\fR-<computernaam>.sh
+aanwezig is wordt deze daarna verwerkt voor apps en systeeminstellingen voor
+de huidige computer, <computernaam>.
+
+Standaard wordt als \fIEDITIE\fR desktop gebruikt, met optie \fB--editie\fR is
+dat te wijzigen (e.g. \fIEDITIE\fR server).
+
+Optie \fB--files\fR geeft een lijst van alle installatiebestanden voor de
+huidige distributie, e.g. ubuntu.
+.br
+Het is mogelijk om \fIBESTAND\fRen op te geven; deze bestanden dienen te
+beginnen met '\fBinstal-\fR' en te eindigen met '\fB.sh\fR'.
+Iets anders wordt beschouwd als een app, zie hierna.
+
+Voor de indeling van de te verwerken bestanden zie sectie \fBBESTANDSINDELING\fR
+hieronder.
+
+Optie \fB--apps\fR geeft een lijst van apps die beschikbaar zijn.
+.br
+Het is mogelijk om \fIAPP\fRs op te geven.
+
+Als \fIAPP\fRs zijn opgegeven worden de regels van deze app opgezocht in een
+installatiebestand en worden de regels gekopieerd naar een tijdelijk bestand
+'/tmp/instal-\fIAPP\fR-XXXXXXXXXX.sh'.
+.br
+Het tijdelijke bestand wordt opgenomen in de lijst van te verwerken bestanden.
+
+Gebruik \fBsetup\fR voor het wijzigen van de gebruikersinstellingen.
+
+.SH BESTANDSINDELING
+De te verwerken bestanden dienen te beginnen met '\fBinstal-\fR' en te eindigen
+met '\fB.sh\fR'.
+
+De regels worden verwerkt op de volgorde zoals deze in het bestand voorkomen.
+
+Zie \fBTabel 1\fR voor welke \fBsoorten\fR regels er zijn en hoe deze regels
+verwerkt worden.
+
+Zie \fBTabel 2\fR voor de \fBvolgorde\fR van deze regels in een
+installatiebestand.
+
+.TS
+box;
+cb s s
+lb | lb | lb
+l  | c  | l.
+Tabel 1. Soorten regels en hun verwerking
+=
+Regelsoort	Verplicht	Beschrijving
+=
+#@\fIAPP\fR	Nee	Wordt gebruikt om regels te vinden voor \fIAPP\fR.
+#1	Ja	Bevat een beschrijving.
+#2	Nee	Bevat instructie voor het installeren, voor optie info.
+#3	Nee	Bevat instructie voor het verwijderen, voor optie remove.
+	Nee	Wordt overgeslagen (is leeg).
+#	Nee	Wordt overgeslagen (is commentaar).
+*	Ja	Wordt als opdracht verwerkt.
+.TE
+.sp
+.br
+
+.TS
+box;
+cb s
+lb | lb
+l  | l.
+Tabel 2. Volgorde van regels in een installatiebestand
+=
+Regel	Beschrijving
+=
+#\ --------------------------------------------------	Commentaar.
+#\ Software installeren	    "
+#\ --------------------------------------------------	    "
+	Lege regel.
+#@firefox	\fIAPP\fR-tag voor firefox.
+#1 Firefox webbrowser	Beschrijving.
+sudo apt-get install --yes firefox	Opdracht.
+#2 1. Start Firefox webbrowser	Installatie-instructie, voor optie info.
+#2 2. Controleer ...	    "
+#3 Start Terminalvenster en typ, of kopieer en plak:	Verwijder-instructie, \
+voor optie remove.
+#3    sudo apt remove firefox	    "
+.TE
+.sp
+.br
+
+In een grafische werkomgeving zoals GNOME (e.g. Ubuntu) kan \fBinstal\fR ook
+worden gestart door te zoeken naar start, klik op 'Start Hier', kies 'Menu \
+Opdrachten' en vervolgens 'instal'.
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+
+Een argument dat verplicht of optioneel is voor een lange optie, is dat ook voor
+de overeenkomstige korte optie.
+.TP
+\fB-a\fR, \fB--apps\fR
+Toon een lijst van te installeren apps, en stoppen.
+.TP
+\fB-c\fR, \fB--cat\fR
+Toon de inhoud van de (opgegeven) installatiebestanden, en stoppen.
+Ieder bestand wordt voorafgegaan door een commentaarregel met de bestandsnaam.
+.TP
+\fB-e\fR, \fB--edition=\fIEDITIE\fR
+Gebruik editie \fIEDITIE\fR.
+.TP
+\fB-f\fR, \fB--files\fR
+Toon een lijst van alle installatiebestanden, en stoppen.
+.TP
+\fB-i\fR, \fB--instal-info\fR
+Toon de instructies voor het afronden van de installatie, en stoppen.
+.TP
+\fB-r\fR, \fB--remove-info\fR
+Toon de instructies voor het verwijderen, en stoppen.
+.TP
+\fB-s\fR, \fB--simulate\fR
+Geen actie, maar simuleer de installatie, en toon de opdrachten die
+uitgevoerd zouden worden.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tinstal').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+/usr/local/bin/instal-Ubuntu-<versie>-\fIEDITIE\fR.sh
+.RS
+Standaard installatiebestand als er geen \fIBESTAND\fRen zijn opgegeven.
+.RE
+
+/usr/local/bin/instal-Ubuntu-<versie>-\fIEDITIE\fR-<computernaam>.sh
+.RS
+Standaard installatiebestand als er geen \fIBESTAND\fRen zijn opgegeven.
+.RE
+
+/tmp/instal-\fIAPP\fR-XXXXXXXXXX.sh
+.RS
+Tijdelijk installatiebestand voor \fIAPP\fR.
+.RE
+
+.SH NOTITIES
+.IP " 1." 4
+Checklist installatie
+.RS 4
+https://karelzimmer.nl
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2009-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+
+.SH ZIE OOK
+\fBcommon.sh\fR(1),
+\fBsetup\fR(1),
+\fBstarthere\fR(1),
+\fBhttps://karelzimmer.nl\fR

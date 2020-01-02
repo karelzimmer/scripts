@@ -1,0 +1,52 @@
+.\" # ##########################################################################
+.\" # Bestand:  common.sh.1
+.\" # Doel:     Man-pagina van script common.sh
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man common.sh
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=25.09.02
+.\" REL_DAT=2020-01-01
+.\" REL_MSG='Terminalattributen aangepast'
+.\"
+.TH COMMON.SH "1" "2020-01-01" "25.09.02" "common.sh"
+
+.SH NAAM
+common.sh \- Algemene variabelen en functies voor bash scripts
+
+.SH SAMENVATTING
+.B source common.sh
+
+.SH BESCHRIJVING
+Kopieer \fBcommon.sh\fR ("library file") in een script ("include") met
+\'\fBsource common.sh\fR\'.
+Dit om te voldoen aan de zogenaamde "SPOT rule" (Single Point of Truth regel):
+alle scripts gebruiken dezelfde gemeenschappelijke variabelen en functies.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2009-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBhttps://karelzimmer.nl\fR

@@ -1,0 +1,67 @@
+#!/bin/bash
+# ##############################################################################
+# Bestand:  _script_completion
+# Doel:     Tab-completion voor eigen scripts
+# Gebruik:  Gesourced bij het starten van bash door ~/.bashrc; daar geplaatst
+#           door pakket scripts (aanbevolen)
+#      of:  In het terminalvenster:
+#           source _script_completion
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+#           Naar voorbeeld op het internet:
+#           https://askubuntu.com/questions/68175
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2017-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+# REL_NUM=01.02.03
+# REL_DAT=2019-12-07
+# REL_MSG='Wijzig autersrechttekst'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+# declare i.v.m. source.
+declare PROGNAME=_script_completion
+if [[ $1 ]]; then
+    printf '%s\n' "Gebruik: source $PROGNAME"
+    exit 0
+fi
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+for file in $(dpkg --listfiles scripts | grep /usr/local/bin); do
+    # shellcheck disable=SC2016
+    if  [[ -f $file && -x $file ]] &&
+        grep --quiet --regexp='source.*/common.sh' "$file"; then
+        # shellcheck source=./_script
+        source /usr/local/bin/_script "$file"
+    fi
+done
+
+# Einde script

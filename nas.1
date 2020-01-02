@@ -1,0 +1,117 @@
+.\" # ##########################################################################
+.\" # Bestand:  nas.1
+.\" # Doel:     Man-pagina van script nas
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man nas
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=11.01.13
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH NAS "1" "2019-12-11" "11.01.13" "nas"
+
+.SH NAAM
+nas \- Koppel een NAS aan tijdens het opstarten
+
+.SH SAMENVATTING
+.B nas
+[OPTIE...]
+
+.SH BESCHRIJVING
+\fBnas\fR koppelt een NAS aan tijdens het opstarten.
+
+Er wordt een systemd mount-bestand aangemaakt en geactiveerd.
+
+Het aan te maken systemd mount-bestand wordt samengesteld met
+standaardwaarden.
+Bij het uitvoeren van dit script worden deze standaardwaarden getoond tussen []
+en zijn deze te wijzigen.
+Als er al regels voorkomen voor de NAS wordt de optie geboden deze te
+verwijderen.  Doen, want nu wordt systemd gebruikt!
+
+Zorg dat de NAS een vast IP-adres heeft.  Hiervoor is nodig:
+
+ -  het MAC-adres van de NAS (ziet eruit als aa:bb:cc:dd:ee:ff)
+ -  toegang tot de NAS via een webbrowser
+ -  toegang tot de router via een webbrowser
+
+ 1. Kies in de router met het MAC-adres van de NAS een IP-adres buiten het
+    bereik van DHCP die automatisch de IP-adressen uitdeelt
+    (vaak 192.168.0.200).
+ 2. Kies in de NAS het vaste IP-adres en zet DHCP uit.
+
+NAS is een acroniem (letterwoord), en een afkorting, van network-attached
+storage.
+
+In een grafische werkomgeving zoals GNOME (e.g. Ubuntu) kan \fBnas\fR ook
+worden gestart door te zoeken naar start, klik op 'Start Hier', kies 'Menu \
+Opdrachten' en vervolgens 'nas'.
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tnas').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+/etc/systemd/system/mnt-nas.mount
+.RS
+Systemd mount-bestand.
+.RE
+
+.SH NOTITIES
+.IP " 1." 4
+Checklist installatie
+.RS 4
+https://karelzimmer.nl
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2014-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+
+.SH ZIE OOK
+\fBcommon.sh\fR(1),
+\fBstarthere\fR(1),
+\fBhttps://karelzimmer.nl\fR

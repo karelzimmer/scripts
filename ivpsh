@@ -1,0 +1,186 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  ivpsh
+# Doel:     Installatie Verificatie Procedure (IVP) voor scripts
+# Gebruik:  In het terminalvenster:
+#           ivpsh
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2015-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=07.05.00
+readonly REL_DAT=2019-12-20
+readonly REL_MSG='Tekst "Overslaan:" verwijderd'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Installatie Verificatie Procedure (IVP) voor scripts.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare -i MAXRC=0
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    local script=$PROGDIR/common.sh
+
+    # Zodat common.sh gevonden wordt voor de shellcheck.
+    cd "$PROGDIR"
+
+    for script in $PROGDIR/*; do
+        if [[ ! -f $script ]]; then
+            continue
+        fi
+        scriptname=$(basename "$script")
+        case $scriptname in
+            *.sh)
+                toon_tekst "Controleer $scriptname ..."
+                controleer_script_technisch "$script"
+                ;;
+            CHANGELOG|*.1|*.desktop)
+                continue
+                ;;
+            *)
+                toon_tekst "Controleer $scriptname ..."
+                controleer_script_technisch "$script"
+                controleer_script_functioneel "$script"
+                ;;
+        esac
+    done
+}
+
+controleer_script_technisch() {
+    local script=${1:-script?}
+    local -i checkrc=0
+
+    set +o errexit
+    shellcheck --external-sources "$script" |& $LOGCMD
+    checkrc=$?
+    set -o errexit
+
+    if [[ $checkrc -gt 0 ]]; then
+        toon_waarschuwingstekst "Technische controle $scriptname geeft \
+rc=$checkrc: shellcheck --external-sources $scriptname"
+        if [[ $checkrc -gt $MAXRC ]]; then
+            MAXRC=$checkrc
+        fi
+    fi
+}
+
+controleer_script_functioneel() {
+    local script=${1:-script?}
+    local -i checkrc=0
+
+    set +o errexit
+    bash "$script" --usage |& $LOGCMD
+    checkrc=$?
+    set -o errexit
+
+    if [[ $checkrc -gt 0 ]]; then
+        toon_waarschuwingstekst "Functionele controle $scriptname geeft \
+rc=$checkrc: $scriptname --usage"
+        if [[ $checkrc -gt $MAXRC ]]; then
+            MAXRC=$checkrc
+        fi
+    fi
+}
+
+term_script() {
+    quiet; exit $MAXRC
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

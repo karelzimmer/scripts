@@ -1,0 +1,271 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  archive
+# Doel:     Archiveer checklists, scripts, en overige bestanden
+# Gebruik:  In het terminalvenster:
+#           archive
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2013-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=16.03.00
+readonly REL_DAT=2019-12-12
+readonly REL_MSG='Verwijderde teveel en CHANGELOG up-to-date houden'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly ARCHIVE_FROM=$HOME/uploads/karelzimmer.nl/httpdocs/data/linux
+readonly ARCHIVE_TO=$HOME/uploads/karelzimmer.nl/httpdocs/data/linux-archief
+readonly CHANGELOG=$HOME/scripts/CHANGELOG
+readonly DELETE_FROM_1=$HOME/scripts
+readonly DELETE_FROM_2=$HOME/Documenten/Checklists
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME $OPTIONS_USAGE_COMMON
+                 [ZOEK_ARGUMENT...]
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...] [--] [ZOEK_ARGUMENT...]
+
+Archiveer elk gegeven ZOEK_ARGUMENT checklists, scripts, en overige bestanden.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON
+
+Argument:
+  ZOEK_ARGUMENT       Zoek naar bestanden overeenkomend met opgegeven \
+ZOEK_ARGUMENTen"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare ARCHIVED=false
+declare ARGUMENT_SEARCH_FOR=false
+declare -a SEARCH_FOR_ARGUMENT=''
+declare DELETED=false
+declare NO_FILES_FOUND=true
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local dir=''
+    local -i getopt_rc=0
+    local -i search4_arg_num=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+   while [[ "$*" ]]; do
+        ARGUMENT_SEARCH_FOR=true
+        SEARCH_FOR_ARGUMENT[$search4_arg_num]=$(basename "$1")
+        (( ++search4_arg_num ))
+        shift
+    done
+
+    controleer_gebruiker
+    vraag_invoer
+}
+
+vraag_invoer() {
+    if $ARGUMENT_SEARCH_FOR; then
+        return 0
+    fi
+
+    read -rp "Wat archiveren/verwijderen? [leeg=alles]: " </dev/tty
+    SEARCH_FOR_ARGUMENT[0]=$REPLY
+}
+
+verwerk_invoer() {
+    local basename=''
+    local dirname=''
+    local search4=''
+
+    for dir in  "$ARCHIVE_FROM"        \
+                "$ARCHIVE_TO"          \
+                "$DELETE_FROM_1"       \
+                "$DELETE_FROM_2"; do
+        if [[ ! -d $dir ]]; then
+            mkdir --parents "$dir"
+        fi
+    done
+
+    NO_FILES_FOUND=true
+
+    for search4 in "${SEARCH_FOR_ARGUMENT[@]}"; do
+        while read -r file; do
+
+            NO_FILES_FOUND=false
+
+            dirname=$(dirname "$file")
+            basename=$(basename "$file")
+
+            if [[ $dirname == "$ARCHIVE_FROM"* ]]
+            then
+                verwerk_archiveren
+            else
+                verwerk_verwijderen
+            fi
+        done < <(find "$ARCHIVE_FROM" "$DELETE_FROM_1" "$DELETE_FROM_2" \
+-iname '*'"$search4"'*' -type f -print | sort)
+    done
+
+    if $NO_FILES_FOUND; then
+        toon_tekst "Geen bestanden gevonden met '${SEARCH_FOR_ARGUMENT[*]}' in \
+de naam."
+    fi
+}
+
+verwerk_archiveren() {
+    printf "\n${BOLD}%s\n%s${NORMAL}\n" "$basename" "$dirname"
+    while true; do
+        read -rp "archiveren/Overslaan/stoppen? (a/O/s) " </dev/tty
+        case $REPLY in
+            a*|A*)
+                archiveer_bestand
+                break
+                ;;
+            o*|O*|'')
+                printf '%s\n' 'Overgeslagen.'
+                break
+                ;;
+            s*|S*)
+                printf '%s\n' 'Gestopt.'
+                quiet; exit $SUCCESS
+                ;;
+            *)
+                echo -e "${UP_ONE_LINE}${ERASE_LINE}"
+                continue
+                ;;
+        esac
+    done
+}
+
+verwerk_verwijderen() {
+    printf "\n${BOLD}%s\n%s${NORMAL}\n" "$basename" "$dirname"
+    while true; do
+        read -rp 'verwijderen/Overslaan/stoppen? (v/O/s) ' </dev/tty
+        case $REPLY in
+            v*|V*)
+                verwijder_bestand
+                break
+                ;;
+            o*|O*|'')
+                printf '%s\n' 'Overgeslagen.'
+                break
+                ;;
+            s*|S*)
+                printf '%s\n' 'Gestopt.'
+                quiet; exit $SUCCESS
+                ;;
+            *)
+                echo -e "${UP_ONE_LINE}${ERASE_LINE}"
+                continue
+                ;;
+        esac
+    done
+}
+
+archiveer_bestand() {
+    local olddir=''
+    local newdir=''
+
+    olddir=$dirname
+    newdir=${olddir//linux/linux-archief}
+    mv  "$olddir/$basename" \
+        "$newdir"           |& $LOGCMD
+    printf '%s\n%s\n' "$basename is gearchiveerd" "naar $newdir"
+    ARCHIVED=true
+}
+
+
+verwijder_bestand() {
+    rm "$file" |& $LOGCMD
+    if [[ $dirname = "$DELETE_FROM_1" ]]; then
+        sed --in-place                      \
+            --expression="/^$basename /d"   \
+            "$CHANGELOG"
+    fi
+    printf '%s\n%s\n' "$basename is verwijderd" "uit $dirname"
+    DELETED=true
+}
+
+term_script() {
+    if ! $ARCHIVED; then
+        toon_tekst 'Er is niets gearchiveerd.'
+    fi
+    if ! $DELETED; then
+        toon_tekst 'Er is niets verwijderd.'
+    fi
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

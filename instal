@@ -1,0 +1,819 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  instal
+# Doel:     Installeer apps en wijzig systeeminstellingen
+# Gebruik:  Met starter 'Start Hier', kies 'Menu Opdrachten' (aanbevolen)
+#      of:  In het terminalvenster:
+#           instal
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2009-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=54.03.01
+readonly REL_DAT=2020-01-02
+readonly REL_MSG='Variabele snap_loc toegeveogd aan check_aptd()'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly APT_REPAIR="
+Om de pakketbeheerder te herstellen, indien nodig, voer uit in het \
+Terminalvenster:
+sudo apt-get update --fix-missing
+sudo dpkg --configure --pending
+sudo apt-get install --fix-broken
+sudo rm /var/lib/dpkg/lock"
+readonly BEGIN_INSTAL_INFO="\
+==========================================================
+=== Volg onderstaande instructies voor het installeren ===
+=========================================================="
+readonly END_INSTAL_INFO="
+==========================================================
+=== Volg bovenstaande instructies voor het installeren ===
+=========================================================="
+readonly BEGIN_REMOVE_INFO="\
+==========================================================
+=== Volg onderstaande instructies voor het verwijderen ===
+=========================================================="
+readonly END_REMOVE_INFO="
+===========================================================
+=== Volg bovenstaande instructies voor het verwijderen  ===
+==========================================================="
+readonly EDITION_DEFAULT='desktop'
+readonly RUN_AS_SUPERUSER=true
+readonly STATUS_BUSY="[${BLINK}BEZIG${NORMAL}]"
+readonly STATUS_SUCCESS=" [${GREEN}GOED${NORMAL}]"
+readonly STATUS_ERROR=" [${RED}FOUT${NORMAL}]"
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON'ace:firs'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON",apps,cat,edition:,files,\
+instal-info,remove-info,simulate"
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON"--apps --cat \
+--edition --files --instal-info --remove-info --simulate"
+readonly USAGE="Gebruik: $PROGNAME [-a|--apps] [-c|--cat] [-e|--edition=EDITIE]
+                [-f|--files] [-i|--instal-info] [-r|--remove-info] \
+[-s|--simulate]
+                $OPTIONS_USAGE_COMMON
+                [APP...] [BESTAND...]
+
+$OPTIONS_LONG_SHORT
+
+$ARGUMENT_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...] [--] [APP...] [BESTAND...]
+
+Installeer elk gegeven APP en verwerk opdrachten in elk gegeven BESTAND.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  $ARGUMENT_LONG_SHORT
+
+  -a --apps           Toon lijst van te installeren apps
+  -c --cat            Toon inhoud van installatiebestanden
+  -e --edition=EDITIE Gebruik opgegeven editie
+  -f --files          Toon lijst van alle installatiebestanden
+  -i --instal-info    Toon instructies voor het installeren
+  -r --remove-info    Toon instructies voor het verwijderen
+  -s --simulate       Geen actie, simuleer installatie, en toon opdracht die
+                      uitgevoerd zou worden
+$OPTIONS_HELP_COMMON
+
+Argumenten:
+  APP                 Opgegeven apps verwerken
+  BESTAND             Opgegeven bestanden verwerken"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare -a APP_ARGUMENT=''
+declare -a FILE_ARGUMENT=''
+declare -a INPUTFILE=''
+declare ARGUMENT_APP=false
+declare ARGUMENT_FILE=false
+declare COMMANDS_FOUND=false
+declare EDITION_ARGUMENT=''
+declare EDITION=$EDITION_DEFAULT
+declare EXECUTE_COMMANDS=true
+declare -i MAXRC=0
+declare INPUTFILE_1=''
+declare INPUTFILE_2=''
+declare INSTALL_INFO_FOUND=false
+declare OPTION_CAT=false
+declare OPTION_EDITION=false
+declare OPTION_INSTAL_INFO=false
+declare OPTION_REMOVE_INFO=false
+declare OPTION_SIMULATE=false
+declare REMOVE_INFO_FOUND=false
+declare TEMP_REPORT_FILE=''
+declare TEMP_TEXT_FILE=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i app_arg_num=0
+    local -i file_arg_num=0
+    local -i file_num=0
+    local -i getopt_rc=0
+    local parsed=''
+
+    source /etc/os-release
+    INPUTFILE_1=$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION_DEFAULT.sh
+    INPUTFILE_2=$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION_DEFAULT-$HOSTNAME.sh
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+
+    while true; do
+        case $1 in
+            -a|--apps)
+                toon_lijst_apps
+                ;;
+            -c|--cat)
+                OPTION_CAT=true
+                shift
+                ;;
+            -e|--edition)
+                if $OPTION_EDITION; then
+                    printf '%s\n%s\n' \
+"Optie '$1' éénmaal opgeven." "$HELPLINE" >&2
+                    quiet; exit $ERROR
+                else
+                    OPTION_EDITION=true
+                    EDITION_ARGUMENT=$2
+                    EDITION=$EDITION_ARGUMENT
+                    INPUTFILE_1=$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION.sh
+                    INPUTFILE_2=$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION\
+-$HOSTNAME.sh
+                fi
+                shift 2
+                ;;
+            -f|--files)
+                toon_lijst_bestanden
+                ;;
+            -i|--instal-info)
+                OPTION_INSTAL_INFO=true
+                EXECUTE_COMMANDS=false
+                shift
+                ;;
+            -r|--remove-info)
+                OPTION_REMOVE_INFO=true
+                EXECUTE_COMMANDS=false
+                shift
+                ;;
+            -s|--simulate)
+                OPTION_SIMULATE=true
+                EXECUTE_COMMANDS=false
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    while [[ "$*" ]]; do
+        if [[ "$(basename "$1")" == $PROGNAME-*.sh ]]; then
+            ARGUMENT_FILE=true
+            FILE_ARGUMENT[$file_arg_num]=$1
+            (( ++file_arg_num ))
+            shift
+        else
+            ARGUMENT_APP=true
+            APP_ARGUMENT[$app_arg_num]=$1
+            (( ++app_arg_num ))
+            shift
+        fi
+    done
+    controleer_argument_app
+    controleer_argument_file
+    if $OPTION_CAT; then
+        toon_inhoud_bestanden
+    fi
+
+    if $EXECUTE_COMMANDS; then
+        controleer_gebruiker
+    fi
+}
+
+toon_lijst_apps() {
+    local temp_text_file
+
+    temp_text_file=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+
+    # shellcheck disable=SC2062
+    printf '%s\n' "De volgende apps kunnen geïnstalleerd worden:
+NUMMER APP
+$(
+    if !    grep    --regexp='^#@'                                      \
+                    --no-messages                                       \
+                    "$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION"*.sh   |
+            awk     -F#@                                                \
+                    '{print $2}'                                        |
+            sort    --unique                                            |
+            nl      --number-width=6                                    \
+                    --number-format=rn                                  \
+                    --number-separator=' '                              \
+                    --body-numbering=a; then
+        printf '%s\n' \
+"     0 Geen bestanden voor $ID $VERSION_ID $EDITION (meer) beschikbaar."
+    fi
+)
+
+De gevonden apps zijn te gebruiken als invoer voor dit script:
+${BLUE}$PROGNAME APP...${NORMAL}
+Voor meer informatie voer uit:
+${BLUE}$PROGNAME --simulate APP...${NORMAL}" > "$temp_text_file"
+
+    if $OPTION_GUI; then
+        verwijder_stuurtekens "$temp_text_file"
+        if ! zenity --text-info                     \
+                    --width=550                     \
+                    --height=600                    \
+                    --title="$PROGNAME apps"        \
+                    --filename="$temp_text_file"    \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    else
+        less "$LESS_OPTIONS" "$temp_text_file"
+    fi
+
+    rm "$temp_text_file"
+    quiet; exit $SUCCESS
+}
+
+toon_lijst_bestanden() {
+    local temp_text_file
+
+    temp_text_file=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+
+    # shellcheck disable=SC2012
+    printf '%s\n' "De volgende installatiebestanden zijn beschikbaar:
+NUMMER BESTAND
+$(
+    if !    ls  --format=single-column                      \
+                "$PROGDIR/$PROGNAME-$ID-$VERSION_ID"*.sh    \
+                2> /dev/null                                |
+            nl  --number-width=6                            \
+                --number-format=rn                          \
+                --number-separator=' '                      \
+                --body-numbering=a; then
+        printf '%s\n' \
+"     0 Geen bestanden voor $ID $VERSION_ID $EDITION (meer) beschikbaar."
+    fi
+)
+
+Deze bestanden zijn te gebruiken als invoer voor dit script:
+${BLUE}$PROGNAME BESTAND...${NORMAL}
+Voor meer informatie voer uit:
+${BLUE}$PROGNAME --simulate BESTAND...${NORMAL}" > "$temp_text_file"
+
+    if $OPTION_GUI; then
+        verwijder_stuurtekens "$temp_text_file"
+        if ! zenity --text-info                     \
+                    --width=750                     \
+                    --height=600                    \
+                    --title="$PROGNAME files"  \
+                    --filename="$temp_text_file"    \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    else
+        less "$LESS_OPTIONS" "$temp_text_file"
+    fi
+
+    rm "$temp_text_file"
+    quiet; exit $SUCCESS
+}
+
+controleer_argument_app() {
+    local app=''
+    local file=''
+    local record=''
+    local temp_sh=''
+
+    if $ARGUMENT_APP; then
+        for app in "${APP_ARGUMENT[@]}"; do
+            # Zoek exact (line-regexp) naar app-tag in installatiebestanden.
+            # Alleen eerstgevonden bestand verwerken (lines=1), want tag kan
+            # in meerdere bestanden voorkomen.
+            # shellcheck disable=SC2062
+            file=$(
+                if ! grep   --files-with-matches                               \
+                            --line-regexp                                      \
+                            --regexp="#@$app"                                  \
+                            "$PROGDIR/$PROGNAME-$ID-$VERSION_ID-$EDITION"*.sh  \
+                            2> /dev/null                                       |
+                    head    --lines=1; then
+                    echo
+                fi
+                )
+            if [[ $file ]]; then
+                local app_found=false
+                local description_found=false
+                temp_sh=$(mktemp -t "$PROGNAME-$app-XXXXXXXXXX.sh")
+                while read -r record; do
+                    case $record in
+                        '#@'*)
+                            if [[ $record = '#@'$app ]]; then
+                                if $app_found; then
+                                    toon_waarschuwingstekst "Dubbele app-tag \
+$app."
+                                else
+                                    # Gezochte app-tag.
+                                    {
+                                        echo "# $DASHES"
+                                        echo "# Bestand: $temp_sh"
+                                    }   >> "$temp_sh"
+                                    # Regels doorschrijven naar tijdelijk
+                                    # bestand tot eerstvolgende app-tag of
+                                    # beschrijving (verplicht), of tot EOF.
+                                    app_found=true
+                                fi
+                            elif $app_found; then
+                                # Volgende app-tag.
+                                break
+                            fi
+                            ;;
+                        '#1'*)
+                            # Beschrijving.
+                            if $description_found; then
+                                # Volgende beschrijving.
+                                break
+                            elif $app_found; then
+                                {
+                                    echo "#    Bron: $file"
+                                    echo -e "# $DASHES"
+                                    echo -e "\n$record"
+                                }   >> "$temp_sh"
+                                description_found=true
+                            fi
+                            ;;
+                        *)
+                            # Overige regels bij gezochte app-tag.
+                            if $app_found; then
+                                echo "$record" >> "$temp_sh"
+                            fi
+                            ;;
+                    esac
+                done < "$file"
+                if ! grep --quiet --regexp='^# Einde installatiebestand' \
+"$temp_sh"
+                then
+                    echo '# Einde installatiebestand' >> "$temp_sh"
+                fi
+                INPUTFILE[$file_num]=$temp_sh
+                (( ++file_num ))
+            else
+                toon_tekst "App '$app' niet gevonden."
+            fi
+        done
+    fi
+}
+
+controleer_argument_file() {
+    local file=''
+    local file_not_found=false
+
+    if $ARGUMENT_FILE; then
+        for file in "${FILE_ARGUMENT[@]}"; do
+            if [[ -e $file ]]; then
+                INPUTFILE[$file_num]=$file
+                (( ++file_num ))
+            else
+                file_not_found=true
+                toon_tekst "Bestand '$file' bestaat niet."
+            fi
+        done
+    elif ! $ARGUMENT_APP; then
+        if [[ -e $INPUTFILE_1 ]]; then
+            INPUTFILE[$file_num]=$INPUTFILE_1
+            (( ++file_num ))
+            if [[ -e $INPUTFILE_2 ]]; then
+                INPUTFILE[$file_num]=$INPUTFILE_2
+            fi
+        else
+            toon_tekst "Standaardbestand '$INPUTFILE_1' bestaat niet.
+Gebruik '$PROGNAME --apps' of '$PROGNAME --files'."
+            quiet; exit $ERROR
+        fi
+    fi
+    if $file_not_found; then
+        toon_tekst "Gebruik '$PROGNAME --apps' of '$PROGNAME --files'.
+$HELPLINE"
+        quiet; exit $WARNING
+    fi
+    if [[ -z "${INPUTFILE[*]}" ]]; then
+        toon_tekst "Geen bestanden te verwerken.
+Gebruik '$PROGNAME --apps' of '$PROGNAME --files'.
+$HELPLINE"
+        quiet; exit $WARNING
+    fi
+}
+
+toon_inhoud_bestanden() {
+    local linefeed=false
+    local temp_text_file
+
+    temp_text_file=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+
+    for file in "${INPUTFILE[@]}"; do
+        {
+        if $linefeed; then
+            echo
+        fi
+        echo "${BLUE}# $file${NORMAL}"
+        cat  "$file"
+        linefeed=true
+        } >> "$temp_text_file"
+    done
+
+    if $OPTION_GUI; then
+        verwijder_stuurtekens "$temp_text_file"
+        if ! zenity --text-info                     \
+                    --width=1100                    \
+                    --height=600                    \
+                    --title="$PROGNAME cat"         \
+                    --filename="$temp_text_file"    \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    else
+        less "$LESS_OPTIONS" "$temp_text_file"
+    fi
+
+    rm "$temp_text_file"
+    quiet; exit $SUCCESS
+}
+
+verwerk_invoer() {
+    local file=''
+    local -i app_seq_num=0
+    local -i app_tot_num=0
+    local linefeed=false
+
+    TEMP_TEXT_FILE=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+    TEMP_REPORT_FILE=$(mktemp -t "$PROGNAME-XXXXXXXXXX.rpt")
+
+    for file in "${INPUTFILE[@]}"; do
+        if $OPTION_SIMULATE || $EXECUTE_COMMANDS; then
+            app_seq_num=0
+            # 'if ! grep --regexp='^#1' ...; then echo 0' werkt niet, echter
+            # grep geeft 0 terug als niets gevonden, maar dan ook rc=1
+            app_tot_num=$(
+                grep    --regexp='^#1'  \
+                        --count         \
+                        "$file"         || true
+                )
+        fi
+
+        if  $EXECUTE_COMMANDS && $OPTION_GUI; then
+            text="Verwerk bestand $(basename "$file") ..."
+            # Met "|& zenity --progress" worden globale variabelen uit
+            # aangeroepen functies niet doorgegeven, vandaar de
+            # 'process substitution' met "> >(zenity ...)".
+            # Zenity progress-informatie per opdracht (bij setup per bestand).
+            verwerk_bestand "$file"     > >(
+            zenity  --progress          \
+                    --pulsate           \
+                    --auto-close        \
+                    --no-cancel         \
+                    --width=600         \
+                    --height=50         \
+                    --title="$PROGNAME" \
+                    --text="$text"      \
+                    2> /dev/null)
+        else
+            verwerk_bestand "$file"
+        fi
+        linefeed=true
+    done
+}
+
+verwerk_bestand() {
+    local file=${1:-file?}
+    local description='### GEEN BESCHRIJVING ###'
+    local file_text=''
+    local -i cmd_seq_num=0
+    local prev_recordtype=''
+    local record=''
+    local recordtype=''
+    local write_description_line=true
+
+    file_text="${BOLD}[BEGIN] Bestand $file${NORMAL}"
+    if $EXECUTE_COMMANDS; then
+        log_tekst "$file_text"
+        echo -e "${CURSOR_INVISABLE}"
+        if $linefeed; then
+            printf '\n'
+        fi
+        printf '%s\n' "$file_text"
+    elif $OPTION_SIMULATE; then
+        if $linefeed; then
+            echo >> "$TEMP_TEXT_FILE"
+        fi
+        echo "$file_text" >> "$TEMP_TEXT_FILE"
+    fi
+
+    while read -r record; do
+        recordtype=${record:0:2}
+        case $recordtype in
+            '#1')
+                verwerk_beschrijving "$record"
+                ;;
+            '#2')
+                verwerk_instal_instructie "$record"
+                ;;
+            '#3')
+                verwerk_verwijder_instructie "$record"
+                ;;
+            ''|'#'*)
+                continue
+                ;;
+            *)
+                verwerk_opdracht "$record"
+                ;;
+        esac
+        prev_recordtype=$recordtype
+    done < "$file"
+
+    file_text="${BOLD}[EINDE] Bestand $file${NORMAL}"
+    if $EXECUTE_COMMANDS; then
+        log_tekst "$file_text"
+        printf '%s\n' "$file_text"
+        echo -e "${CURSOR_VISABLE}"
+    elif $OPTION_SIMULATE; then
+        echo "$file_text" >> "$TEMP_TEXT_FILE"
+    fi
+}
+
+verwerk_beschrijving() {
+    local record=${1:-record?}
+
+    description="${record:3}"
+    if ! $OPTION_SIMULATE && ! $EXECUTE_COMMANDS; then
+        return 0
+    fi
+    write_description_line=true
+    (( ++app_seq_num ))
+    cmd_seq_num=0
+}
+
+verwerk_instal_instructie() {
+    local record=${1:-record?}
+
+    INSTALL_INFO_FOUND=true
+    if ! $OPTION_INSTAL_INFO; then
+        return 0
+    fi
+    if [[ $app_seq_num -eq 0 ]]; then
+        echo "$BEGIN_INSTAL_INFO" > "$TEMP_TEXT_FILE"
+    fi
+    if [[ $prev_recordtype = '#2' ]]; then
+        echo "    ${record:3}" >> "$TEMP_TEXT_FILE"
+    else
+        (( ++app_seq_num ))
+        printf "\n%2s. %s\n    %.${#description}s\n    %s\n" \
+"$app_seq_num" "$description" "$DASHES" "${record:3}" >> "$TEMP_TEXT_FILE"
+    fi
+}
+
+verwerk_verwijder_instructie() {
+    local record=${1:-record?}
+
+    REMOVE_INFO_FOUND=true
+    if ! $OPTION_REMOVE_INFO; then
+        return 0
+    fi
+    if [[ $app_seq_num -eq 0 ]]; then
+        echo "$BEGIN_REMOVE_INFO" > "$TEMP_TEXT_FILE"
+    fi
+    if [[ $prev_recordtype = '#3' ]]; then
+        echo "    ${record:3}" >> "$TEMP_TEXT_FILE"
+    else
+        (( ++app_seq_num ))
+        printf "\n%2s. %s\n    %.${#description}s\n    %s\n" \
+"$app_seq_num" "$description" "$DASHES" "${record:3}" >> "$TEMP_TEXT_FILE"
+    fi
+}
+
+verwerk_opdracht() {
+    local cmd=${1:-cmd?}
+    local -i cmd_rc=0
+    local description_line=''
+    local status=''
+
+    COMMANDS_FOUND=true
+    (( ++cmd_seq_num ))
+
+    if $OPTION_SIMULATE; then
+        if $write_description_line; then
+            printf '[%2d/%-2d] %s\n' \
+"$app_seq_num" "$app_tot_num" "$description" >> "$TEMP_TEXT_FILE"
+        fi
+        write_description_line=false
+        printf '%7s [%2d] %s\n' \
+" " "$cmd_seq_num" "${BLUE}$record${NORMAL}" >> "$TEMP_TEXT_FILE"
+    elif $EXECUTE_COMMANDS; then
+        if $OPTION_GUI; then
+            printf '%s\n' \
+"#Verwerk:\n[$app_seq_num/$app_tot_num] $description\n\n\Opdracht:\n$record"
+        fi
+        printf -v description_line '[%2d/%-2d] [%2d] %s' \
+"$app_seq_num" "$app_tot_num" "$cmd_seq_num" "$description"
+        voer_opdracht_uit "$record"
+    fi
+}
+
+voer_opdracht_uit() {
+    local cmd=${1:-cmd?}
+    local -i cmd_rc=0
+    local status=''
+
+    if [[ $cmd_seq_num -eq 1 ]]; then
+        printf "$STATUS_BUSY %s\r" "$description_line"
+    else
+        printf "$STATUS_BUSY         %s\r" "${description_line:8}"
+    fi
+
+    set +o errexit
+    set +o nounset
+    check_aptd
+    log_tekst "$description_line"
+    log_tekst "${BLUE}$cmd${NORMAL}"
+    eval "$cmd" |& $LOGCMD
+    cmd_rc=$?
+    set -o errexit
+    set -o nounset
+
+    if [[ $cmd_rc -gt $MAXRC ]]; then
+        MAXRC=$cmd_rc
+    fi
+    if [[ $cmd_rc -eq 0 ]]; then
+        status="$STATUS_SUCCESS"
+    else
+        status="$STATUS_ERROR"
+    fi
+    printf '%s\n' "$status"
+    log_tekst "$status rc=$cmd_rc, maxrc=$MAXRC"
+    if $OPTION_GUI; then
+        echo "$status $description_line" >> "$TEMP_REPORT_FILE"
+    fi
+}
+
+check_aptd() {
+    local snap_loc=''
+    local wait=10s
+
+    if ls /snap/core/*/var/cache/debconf/config.dat &> /dev/null; then
+        snap_loc="/snap/core/*/var/cache/debconf/config.dat"
+    fi
+    while /usr/bin/sudo fuser \
+        /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock \
+        /var/cache/debconf/config.dat "$snap_loc" &> /dev/null; do
+        printf '%s\n' \
+"Wacht $wait totdat andere softwarebeheerders klaar zijn..."
+        sleep $wait
+    done
+}
+
+term_script() {
+    local app=''
+    local file=''
+    local text=''
+
+    if $OPTION_SIMULATE; then
+        if $OPTION_GUI; then
+            verwijder_stuurtekens "$TEMP_TEXT_FILE"
+            if ! zenity --text-info                     \
+                        --width=1100                    \
+                        --height=600                    \
+                        --title="$PROGNAME simulate"    \
+                        --filename="$TEMP_TEXT_FILE"    \
+                        --font='Ubuntu Mono 12'         \
+                        2> /dev/null; then
+                true
+            fi
+        else
+            cat "$TEMP_TEXT_FILE"
+        fi
+    elif $OPTION_INSTAL_INFO && $INSTALL_INFO_FOUND; then
+        echo "$END_INSTAL_INFO" >> "$TEMP_TEXT_FILE"
+        if $OPTION_GUI; then
+            if ! zenity --text-info                     \
+                        --width=650                     \
+                        --height=400                    \
+                        --title="$PROGNAME info" \
+                        --filename="$TEMP_TEXT_FILE"    \
+                        --font='Ubuntu Mono 12'         \
+                        2> /dev/null; then
+                true
+            fi
+        else
+            less "$LESS_OPTIONS" "$TEMP_TEXT_FILE"
+        fi
+    elif $OPTION_INSTAL_INFO && ! $INSTALL_INFO_FOUND; then
+        toon_tekst "Geen instructies aanwezig over het installeren."
+    elif $OPTION_REMOVE_INFO && $REMOVE_INFO_FOUND; then
+        echo "$END_REMOVE_INFO" >> "$TEMP_TEXT_FILE"
+        if $OPTION_GUI; then
+            if ! zenity --text-info                         \
+                        --width=650                         \
+                        --height=400                        \
+                        --title="$PROGNAME remove"   \
+                        --filename="$TEMP_TEXT_FILE"        \
+                        --font='Ubuntu Mono 12'             \
+                        2> /dev/null; then
+                true
+            fi
+        else
+            less "$LESS_OPTIONS" "$TEMP_TEXT_FILE"
+        fi
+    elif $OPTION_REMOVE_INFO && ! $REMOVE_INFO_FOUND; then
+        toon_tekst "Geen instructies aanwezig over het verwijderen."
+    elif ! $COMMANDS_FOUND; then
+        toon_tekst 'Geen opdrachten aanwezig.'
+    fi
+    rm "$TEMP_TEXT_FILE"
+
+    if $EXECUTE_COMMANDS && [[ $MAXRC -eq 0 ]] && $INSTALL_INFO_FOUND; then
+        toon_tekst "
+Er zijn aanvullende instructies, gebruik de opdracht: $CALLED --instal"
+    elif $EXECUTE_COMMANDS && [[ $MAXRC -ne 0 ]] && $OPTION_GUI; then
+        verwijder_stuurtekens "$TEMP_REPORT_FILE"
+        if ! zenity --text-info                     \
+                    --width=550                     \
+                    --height=600                    \
+                    --title="$PROGNAME foutrapport" \
+                    --filename="$TEMP_REPORT_FILE"  \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    fi
+    rm "$TEMP_REPORT_FILE"
+
+    if $EXECUTE_COMMANDS && [[ $MAXRC -ne 0 ]]; then
+        quiet; exit $WARNING
+    else
+        quiet; exit $SUCCESS
+    fi
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

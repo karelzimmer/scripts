@@ -1,0 +1,1175 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  starthere
+# Doel:     Voer installatie-opdrachten uit via een menu
+# Gebruik:  Met starter 'Start Hier' (aanbevolen)
+#      of:  In het terminalvenster:
+#           starthere
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2015-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=32.08.00
+readonly REL_DAT=2019-12-27
+readonly REL_MSG='Menu-beschrijving keuze 5 centreren'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly MENU1_TITLE="Menu Installatie"
+readonly MENU1_HEAD="${DASHES:0:20} $MENU1_TITLE ${DASHES:0:20}"
+readonly -a ACTIONS1=(
+    [1]='Checklist installatie'
+        'Installatie voorbereiden'
+        'Installatie afronden'
+        'Gebruiker inrichten'
+        'Menu Opdrachten'
+        'Menu Printer/scanner'
+        'Stoppen'
+    )
+readonly -a DESCS1=(
+    [1]='Checklist tonen'
+        'Checklist hoofdstuk 1'
+        'Checklist hoofdstuk 3'
+        'Checklist hoofdstuk 4'
+        'Opdrachten apart uitvoeren'
+        'Printer/scanner installeren'
+        'Menu verlaten'
+    )
+declare -ir MENU1_LEN=24
+readonly -a TUI_MENU1_LINES=(
+    [1]="$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[1]}" "${DESCS1[1]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[2]}" "${DESCS1[2]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[3]}" "${DESCS1[3]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[4]}" "${DESCS1[4]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[5]}" "${DESCS1[5]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[6]}" "${DESCS1[6]}")"
+        "$(printf "%-${MENU1_LEN}s - %s\n" "${ACTIONS1[7]}" "${DESCS1[7]}")"
+    )
+readonly TUI_MENU1_LINES_NUM=${#TUI_MENU1_LINES[@]}
+
+readonly MENU2_TITLE="Menu Opdrachten"
+readonly MENU2_HEAD="${DASHES:0:22} $MENU2_TITLE ${DASHES:0:22}"
+readonly -a ACTIONS2=(
+    [1]='backup'
+        'instal'
+        'instal --instal-info'
+        'instal --remove-info'
+        'lsinstal'
+        'nas'
+        'restore'
+        'setup'
+        'setup --setup-info'
+        'setup --remove-info'
+        'Terug'
+    )
+readonly -a DESCS2=(
+    [1]='Back-up maken'
+        'Apps installeren/systeem instellen'
+        'Installatie-instructies'
+        'Verwijder-instructies'
+        'Softwarelijst maken'
+        'Netwerkschijf permanent koppelen'
+        'Back-up terugzetten'
+        'Gebruikersinstellingen wijzigen'
+        'Instel-instructies'
+        'Verwijder-instructies'
+        'Naar vorig menu'
+    )
+declare -ir MENU2_LEN=20
+readonly -a TUI_MENU2_LINES=(
+    [1]="$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[1]}" "${DESCS2[1]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[2]}" "${DESCS2[2]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[3]}" "${DESCS2[3]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[4]}" "${DESCS2[4]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[5]}" "${DESCS2[5]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[6]}" "${DESCS2[6]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[7]}" "${DESCS2[7]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[8]}" "${DESCS2[8]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[9]}" "${DESCS2[9]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[10]}" "${DESCS2[10]}")"
+        "$(printf "%-${MENU2_LEN}s - %s\n" "${ACTIONS2[11]}" "${DESCS2[11]}")"
+    )
+readonly TUI_MENU2_LINES_NUM=${#TUI_MENU2_LINES[@]}
+readonly -a COMMANDS2=(
+    [1]='backup'
+        'instal'
+        'instal --instal-info'
+        'instal --remove-info'
+        'lsinstal'
+        'nas'
+        'restore'
+        'setup'
+        'setup --setup-info'
+        'setup --remove-info'
+    )
+
+readonly MENU3_TITLE="Menu Printer/scanner"
+readonly MENU3_HEAD="${DASHES:0:12} $MENU3_TITLE ${DASHES:0:13}"
+readonly -a ACTIONS3=(
+    [1]='Direct'
+        'Netwerk'
+        'HP'
+        'Brother'
+        'Info'
+        'Terug'
+    )
+readonly -a DESCS3=(
+    [1]='Direct aangesloten printer/scanner'
+        'Netwerk printer/scanner'
+        'HP printer/scanner'
+        'Brother printer/scanner'
+        'Printer informatie'
+        'Naar vorig menu'
+    )
+declare -ir MENU3_LEN=7
+readonly -a TUI_MENU3_LINES=(
+    [1]="$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[1]}" "${DESCS3[1]}")"
+        "$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[2]}" "${DESCS3[2]}")"
+        "$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[3]}" "${DESCS3[3]}")"
+        "$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[4]}" "${DESCS3[4]}")"
+        "$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[5]}" "${DESCS3[5]}")"
+        "$(printf "%-${MENU3_LEN}s - %s\n" "${ACTIONS3[6]}" "${DESCS3[6]}")"
+    )
+readonly TUI_MENU3_LINES_NUM=${#TUI_MENU3_LINES[@]}
+readonly -a COMMANDS3=(
+    [1]=''
+        ''
+        'hp-setup'
+        'apt-get install --yes brother-*'
+        'lpstat -t'
+    )
+
+declare -ir MAX_CMD_NAME_LEN=24
+declare -ir MAX_CMD_DESC_LEN=35
+
+readonly STATUS_SUCCESS="[${GREEN}GOED${NORMAL}]"
+readonly STATUS_WARNING="[${YELLOW}WAARSCHUWING${NORMAL}]"
+readonly STATUS_ERROR="[${RED}FOUT${NORMAL}]"
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON
+readonly USAGE="Gebruik: $PROGNAME
+                   $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Voer installatie-opdrachten uit via een menu.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare -a COMMAND_RESULT=''
+declare -a COMMANDS=''
+declare COMMANDS_EXECUTED=false
+declare GUI_OPTION=''
+declare -i NUMBER_OF_COMMANDS=0
+declare PASSWD=''
+declare ZENITY_TITLE=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    if $OPTION_GUI; then
+        GUI_OPTION='--gui'
+    fi
+
+    while true; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    if $OPTION_GUI; then
+        verwerk_menu1_gui
+    else
+        verwerk_menu1_tui
+    fi
+}
+
+#1.0G
+verwerk_menu1_gui() {
+    while true; do
+        ZENITY_TITLE=$MENU1_TITLE
+        set +o errexit
+        REPLY=$(
+            zenity  --list                                  \
+                    --radiolist                             \
+                    --width=530                             \
+                    --height=260                            \
+                    --title="$ZENITY_TITLE"                 \
+                    --text='Selecteer een keuze'            \
+                    --column='Keuze'                        \
+                    --column='Nr.'                          \
+                    --column='Actie'                        \
+                    --column='Toelichting'                  \
+                    TRUE  1 "${ACTIONS1[1]}" "${DESCS1[1]}" \
+                    FALSE 2 "${ACTIONS1[2]}" "${DESCS1[2]}" \
+                    FALSE 3 "${ACTIONS1[3]}" "${DESCS1[3]}" \
+                    FALSE 4 "${ACTIONS1[4]}" "${DESCS1[4]}" \
+                    FALSE 5 "${ACTIONS1[5]}" "${DESCS1[5]}" \
+                    FALSE 6 "${ACTIONS1[6]}" "${DESCS1[6]}" \
+                    2> /dev/null
+            )
+        # Gebruiker kiest annuleren.
+        # shellcheck disable=SC2181
+        if [[ $? -ne 0 ]]; then
+            quiet; exit $SUCCESS
+        fi
+        set -o errexit
+        verwerk_menu1_keuze
+    done
+}
+
+#1.0T
+verwerk_menu1_tui() {
+    local action=''
+
+    while true; do
+        # Vul de vraag in, standaard is '#? '
+        PS3="
+Voer uit nummer (1-$((TUI_MENU1_LINES_NUM-1)), $TUI_MENU1_LINES_NUM) "
+
+        echo -e "${CLEAR_SCREEN}"
+        echo "$MENU1_HEAD
+"
+        # Toon menu.
+        select action in "${TUI_MENU1_LINES[@]}"; do
+            log_tekst "$action"
+            verwerk_menu1_keuze
+            if $COMMANDS_EXECUTED; then
+                read -rp "
+Druk op de Enter-toets voor het menu (Enter) " </dev/tty
+            fi
+            COMMANDS_EXECUTED=false
+            break
+        done
+    done
+}
+
+#1.0
+verwerk_menu1_keuze() {
+    case $REPLY in
+        1)
+            verwerk_checklist_installatie
+            ;;
+        2)
+            verwerk_installatie_voorbereiden
+            ;;
+        3)
+            verwerk_installatie_afronden
+            ;;
+        4)
+            verwerk_gebruiker_inrichten
+            ;;
+        5)
+            verwerk_menu2
+            ;;
+        6)
+            verwerk_menu3
+            ;;
+        7)
+            toon_tekst 'Gestopt.'
+            quiet; exit $SUCCESS
+            ;;
+    esac
+}
+
+#1.1
+verwerk_checklist_installatie() {
+    local id=''
+    local source='/usr/share/doc/scripts/pdfs'
+    local checklist_common=''
+    local checklist_host=''
+    local checklist_found=false
+    local target=$HOME/Downloads
+    local text=''
+
+    id=$(lsb_release --id --short)
+
+    if ls $source/*"$id"*"$HOSTNAME".pdf &> /dev/null; then
+        checklist_found=true
+        checklist_host=$(basename "$(ls $source/*"$id"*"$HOSTNAME".pdf)")
+        cp "$source/$checklist_host" "$target"
+        evince "$target/$checklist_host" &> /dev/null &
+    fi
+
+    if ls $source/*"$id"*desktop.pdf &> /dev/null; then
+        checklist_found=true
+        checklist_common=$(basename "$(ls $source/*"$id"*desktop.pdf)")
+        cp "$source/$checklist_common" "$target"
+        evince "$target/$checklist_common" &> /dev/null &
+    fi
+
+    if $checklist_found; then
+        text="
+Volg de $(basename "$checklist_common" .pdf)
+(en indien gevonden de checklist voor $HOSTNAME).
+De checklist wordt getoond in een ander venster.
+
+Druk de Checklist af om de acties te kunnen afvinken.
+
+N.B.
+De checklist is opgeslagen in $target.
+De checklist is ook te vinden op de site
+https://karelzimmer.nl onder Linux."
+    else
+        source /etc/os-release
+        text="
+Checklist installatie $NAME is niet gevonden.
+De checklist is ook te vinden op de site
+https://karelzimmer.nl onder Linux."
+    fi
+
+    toon_tekst "$text"
+    COMMANDS_EXECUTED=true
+}
+
+#1.2
+verwerk_installatie_voorbereiden() {
+    toon_waarschuwingstekst "Zorg dat het medium is aangekoppeld waarop de \
+back-up wordt geplaatst."
+
+    COMMANDS=(
+        [1]="${COMMANDS2[5]}#${DESCS2[5]}"
+            "${COMMANDS2[1]}#${DESCS2[1]}"
+        )
+
+    ZENITY_TITLE='2 - Installatie voorbereiden'
+    verwerk_opdrachten
+}
+
+#1.3
+verwerk_installatie_afronden() {
+    toon_waarschuwingstekst "Zorg dat het medium is aangekoppeld waarop de \
+back-up staat."
+
+    case $HOSTNAME in
+        hugo-*|soe-*)
+            COMMANDS=(
+                [1]="${COMMANDS2[7]}#${DESCS2[7]}"
+                    "${COMMANDS2[6]}#${DESCS2[6]}"
+                    "${COMMANDS2[2]}#${DESCS2[2]}"
+                    "${COMMANDS2[3]}#${DESCS2[3]}"
+                )
+            ;;
+        *)
+            COMMANDS=(
+                [1]="${COMMANDS2[7]}#${DESCS2[7]}"
+                    "${COMMANDS2[2]}#${DESCS2[2]}"
+                    "${COMMANDS2[3]}#${DESCS2[3]}"
+                )
+            ;;
+    esac
+
+    ZENITY_TITLE='3 - Installatie afronden'
+    verwerk_opdrachten
+}
+
+#1.4
+verwerk_gebruiker_inrichten() {
+    COMMANDS=(
+        [1]="${COMMANDS2[8]}#${DESCS2[8]}"
+            "${COMMANDS2[9]}#${DESCS2[9]}"
+        )
+
+    ZENITY_TITLE='4 - Gebruiker inrichten'
+    verwerk_opdrachten
+}
+
+#1.5
+verwerk_menu2() {
+    if $OPTION_GUI; then
+        verwerk_menu2_gui
+    else
+        verwerk_menu2_tui
+    fi
+}
+
+#2.0G
+verwerk_menu2_gui() {
+    while true; do
+        ZENITY_TITLE=$MENU2_TITLE
+        set +o errexit
+        REPLY=$(
+            zenity  --list                                      \
+                    --radiolist                                 \
+                    --width=530                                 \
+                    --height=350                                \
+                    --title="$ZENITY_TITLE"                     \
+                    --text='Selecteer een keuze'                \
+                    --column='Keuze'                            \
+                    --column='Nr.'                              \
+                    --column='Opdracht   '                      \
+                    --column='Toelichting'                      \
+                    TRUE  1 "${ACTIONS2[1]}" "${DESCS2[1]}"     \
+                    FALSE 2 "${ACTIONS2[2]}" "${DESCS2[2]}"     \
+                    FALSE 3 "${ACTIONS2[3]}" "${DESCS2[3]}"     \
+                    FALSE 4 "${ACTIONS2[4]}" "${DESCS2[4]}"     \
+                    FALSE 5 "${ACTIONS2[5]}" "${DESCS2[5]}"     \
+                    FALSE 6 "${ACTIONS2[6]}" "${DESCS2[6]}"     \
+                    FALSE 7 "${ACTIONS2[7]}" "${DESCS2[7]}"     \
+                    FALSE 8 "${ACTIONS2[8]}" "${DESCS2[8]}"     \
+                    FALSE 9 "${ACTIONS2[9]}" "${DESCS2[9]}"     \
+                    FALSE 10 "${ACTIONS2[10]}" "${DESCS2[10]}"  \
+                    2> /dev/null
+            )
+        # shellcheck disable=SC2181
+        if [[ $? -ne 0 ]]; then
+            break
+        fi
+        set -o errexit
+        verwerk_menu2_keuze
+    done
+}
+
+#2.0T
+verwerk_menu2_tui() {
+    local action2=''
+    local exit_menu2=false
+
+    while true; do
+        PS3="
+Voer uit nummer (1-$((TUI_MENU2_LINES_NUM-1)), $TUI_MENU2_LINES_NUM) "
+
+        echo -e "${CLEAR_SCREEN}"
+        echo "$MENU2_HEAD
+"
+        # Toon menu2.
+        select action2 in "${TUI_MENU2_LINES[@]}"; do
+            log_tekst "$action2"
+            verwerk_menu2_keuze
+            if $exit_menu2; then
+                break
+            fi
+            if $COMMANDS_EXECUTED; then
+                read -rp "
+Druk op de Enter-toets voor het menu (Enter) " </dev/tty
+            fi
+            COMMANDS_EXECUTED=false
+            break
+        done
+        if $exit_menu2; then
+            break
+        fi
+    done
+}
+
+
+#2.0
+verwerk_menu2_keuze() {
+    case $REPLY in
+        1)
+            local text="Zorg dat het medium is aangekoppeld waarop de back-up \
+wordt geplaatst."
+            if $OPTION_GUI; then
+                zenity  --warning       \
+                        --width=300     \
+                        --height=100    \
+                        --text="$text"  \
+                        2> /dev/null
+            else
+                toon_waarschuwingstekst "$text"
+            fi
+            COMMANDS=(
+                [1]="${COMMANDS2[1]}#${DESCS2[1]}"
+                )
+            ZENITY_TITLE="${DESCS2[1]}"
+            verwerk_opdrachten
+            ;;
+        2)
+            COMMANDS=(
+                [1]="${COMMANDS2[2]}#${DESCS2[2]}"
+                )
+            ZENITY_TITLE="${DESCS2[2]}"
+            verwerk_opdrachten
+            ;;
+        3)
+            COMMANDS=(
+                [1]="${COMMANDS2[3]}#${DESCS2[3]}"
+                )
+            ZENITY_TITLE="${DESCS2[3]}"
+            verwerk_opdrachten
+            ;;
+        4)
+            COMMANDS=(
+                [1]="${COMMANDS2[4]}#${DESCS2[4]}"
+                )
+            ZENITY_TITLE="${DESCS2[4]}"
+            verwerk_opdrachten
+            ;;
+        5)
+            COMMANDS=(
+                [1]="${COMMANDS2[5]}#${DESCS2[5]}"
+                )
+            ZENITY_TITLE="${DESCS2[5]}"
+            verwerk_opdrachten
+            ;;
+        6)
+            COMMANDS=(
+                [1]="${COMMANDS2[6]}#${DESCS2[6]}"
+                )
+            ZENITY_TITLE="${DESCS2[6]}"
+            verwerk_opdrachten
+            ;;
+        7)
+            local text="Zorg dat het medium is aangekoppeld waarop de back-up \
+staat."
+            if $OPTION_GUI; then
+                zenity  --warning       \
+                        --width=300     \
+                        --height=100    \
+                        --text="$text"  \
+                        2> /dev/null
+            else
+                toon_waarschuwingstekst "$text"
+            fi
+            COMMANDS=(
+                [1]="${COMMANDS2[7]}#${DESCS2[7]}"
+                )
+            ZENITY_TITLE="${DESCS2[7]}"
+            verwerk_opdrachten
+            ;;
+        8)
+            COMMANDS=(
+                [1]="${COMMANDS2[8]}#${DESCS2[8]}"
+                )
+            ZENITY_TITLE="${DESCS2[8]}"
+            verwerk_opdrachten
+            ;;
+        9)
+            COMMANDS=(
+                [1]="${COMMANDS2[9]}#${DESCS2[9]}"
+                )
+            ZENITY_TITLE="${DESCS2[9]}"
+            verwerk_opdrachten
+            ;;
+        10)
+            COMMANDS=(
+                [1]="${COMMANDS2[10]}#${DESCS2[10]}"
+                )
+            ZENITY_TITLE="${DESCS2[10]}"
+            verwerk_opdrachten
+            ;;
+        11)
+            exit_menu2=true
+            ;;
+    esac
+}
+
+#1.6
+verwerk_menu3() {
+    if $OPTION_GUI; then
+        verwerk_menu3_gui
+    else
+        verwerk_menu3_tui
+    fi
+}
+
+#3.0G
+verwerk_menu3_gui() {
+    while true; do
+        ZENITY_TITLE=$MENU3_TITLE
+        set +o errexit
+        REPLY=$(
+            zenity  --list                                  \
+                    --radiolist                             \
+                    --width=530                             \
+                    --height=230                            \
+                    --title="$ZENITY_TITLE"                 \
+                    --text='Selecteer een keuze'            \
+                    --column='Keuze'                        \
+                    --column='Nr.'                          \
+                    --column='Printer/scanner'              \
+                    --column='Toelichting'                  \
+                    TRUE  1 "${ACTIONS3[1]}" "${DESCS3[1]}" \
+                    FALSE 2 "${ACTIONS3[2]}" "${DESCS3[2]}" \
+                    FALSE 3 "${ACTIONS3[3]}" "${DESCS3[3]}" \
+                    FALSE 4 "${ACTIONS3[4]}" "${DESCS3[4]}" \
+                    FALSE 5 "${ACTIONS3[5]}" "${DESCS3[5]}" \
+                    2> /dev/null
+            )
+        # shellcheck disable=SC2181
+        if [[ $? -ne 0 ]]; then
+            break
+        fi
+        set -o errexit
+        verwerk_menu3_keuze
+    done
+}
+
+#3.0T
+verwerk_menu3_tui() {
+    local action3=''
+    local exit_menu3=false
+
+    while true; do
+        PS3="
+Voer uit nummer (1-$((TUI_MENU3_LINES_NUM-1)), $TUI_MENU3_LINES_NUM) "
+
+        echo -e "${CLEAR_SCREEN}"
+        echo "$MENU3_HEAD
+"
+        select action3 in "${TUI_MENU3_LINES[@]}"; do
+            log_tekst "$action3"
+            verwerk_menu3_keuze
+            if $exit_menu3; then
+                break
+            fi
+            if $COMMANDS_EXECUTED; then
+                read -rp "
+Druk op de Enter-toets voor het menu (Enter) " </dev/tty
+            fi
+            COMMANDS_EXECUTED=false
+            break
+        done
+        if $exit_menu3; then
+            break
+        fi
+    done
+}
+
+#3.0
+verwerk_menu3_keuze() {
+    case $REPLY in
+        1)
+            verwerk_direct
+            toon_info
+            ;;
+        2)
+            verwerk_netwerk
+            toon_info
+            ;;
+        3)
+            verwerk_hp
+            if $COMMANDS_EXECUTED; then
+                toon_info
+            fi
+            ;;
+        4)
+            verwerk_brother
+            if $COMMANDS_EXECUTED; then
+                toon_info
+            fi
+            ;;
+        5)
+            toon_info
+            ;;
+        6)
+            exit_menu3=true
+            ;;
+    esac
+}
+
+#3.1
+verwerk_direct() {
+    local title="${DESCS3[1]}"
+
+    printer_melding
+
+    text="
+Voer indien nodig onderstaande stappen uit:
+
+1. Sluit de printer aan op de computer, en zet deze aan.
+2. Venster Printerconfiguratie opent, of start Afdrukbeheer (Printers).
+3. Klik op Nieuwe printer toevoegen, of kies de juiste printer en voeg deze toe.
+4. Kies eventueel Testpagina afdrukken.
+5. Stel de printer in als Standaardprinter.
+6. Sluit Afdrukbeheer (Printers) af."
+    if $OPTION_GUI; then
+        zenity  --info              \
+                --width=400         \
+                --height=100        \
+                --title="$title"    \
+                --text="$text"      \
+                2> /dev/null
+    else
+        printf '%s\n' "$text"
+    fi
+}
+
+#3.2
+verwerk_netwerk() {
+    local title="${DESCS3[2]}"
+
+    printer_melding
+
+    text="
+Voer indien nodig onderstaande stappen uit:
+
+1. Sluit de printer aan op het netwerk, en zorg dat de printer aan staat.
+2. Zoek Afdrukbeheer (Printers).
+3. Klik op Nieuwe printer toevoegen, of wacht tot de de netwerkprinter is \
+gevonden.
+4. Klik op de gevonden netwerkprinter.
+   Als er geen netwerkprinter wordt gevonden, probeer dan een andere keuze op \
+het menu.
+5. Kies eventueel Testpagina afdrukken.
+6. Stel de printer in als Standaardprinter.
+7. Sluit Afdrukbeheer (Printers) af."
+    if $OPTION_GUI; then
+        zenity  --info              \
+                --width=500         \
+                --height=100        \
+                --title="$title"    \
+                --text="$text"      \
+                2> /dev/null
+    else
+        printf '%s\n' "$text"
+    fi
+}
+
+#3.3
+verwerk_hp() {
+    local title="${DESCS3[3]}"
+
+    printer_melding
+
+    COMMANDS=(
+        [1]="${COMMANDS3[3]}#${DESCS3[3]}"
+        )
+    verwerk_opdrachten
+}
+
+#3.4
+verwerk_brother() {
+    local title="${DESCS3[4]}"
+
+    printer_melding
+
+    COMMANDS=(
+        [1]="${COMMANDS3[4]}#${DESCS3[4]}"
+        )
+    verwerk_opdrachten
+}
+
+#3.5
+toon_info() {
+    local text="Hieronder volgt informatie over de gevonden printers.
+
+Als er geen printer wordt gevonden, probeer dan een andere keuze op het menu.
+"
+    local title="${DESCS3[5]}"
+    local temp_text_file
+
+    temp_text_file=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+    echo "$text" > "$temp_text_file"
+    if ! ${COMMANDS3[5]} &>> "$temp_text_file"; then
+        true
+    fi
+
+    if $OPTION_GUI; then
+        if ! zenity --text-info                     \
+                    --width=700                     \
+                    --height=300                    \
+                    --title="$title"                \
+                    --filename="$temp_text_file"    \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    else
+        cat "$temp_text_file"
+    fi
+    rm "$temp_text_file"
+}
+
+#3.*
+printer_melding() {
+    local text="LET OP:
+Met ingang van Ubuntu 17.10 worden printers/scanners automatisch geïnstalleerd.
+Deze dienen dan wel al verbonden te zijn met het netwerk.
+"
+
+    if $OPTION_GUI; then
+        zenity  --warning           \
+                --width=400         \
+                --height=100        \
+                --title="$title"    \
+                --text="$text"      \
+                2> /dev/null
+    else
+        toon_waarschuwingstekst "$text"
+    fi
+}
+
+#1.* 2.* 3.*
+verwerk_opdrachten() {
+    local -i cmd_num=0
+    local cmd_name=''
+    local cmd_desc=''
+
+    NUMBER_OF_COMMANDS=${#COMMANDS[@]}
+    toon_opdrachten_voor_uitvoering
+    if $COMMANDS_EXECUTED; then
+        for cmd_num in "${!COMMANDS[@]}"; do
+            cmd_name=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $1}')
+            cmd_desc=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $2}')
+            verwerk_opdracht
+        done
+    fi
+    if $COMMANDS_EXECUTED; then
+        toon_opdrachten_na_uitvoering
+    fi
+}
+
+#1.* 2.* 3.*
+toon_opdrachten_voor_uitvoering() {
+    local prompt=''
+    local -i cmd_num=0
+    local cmd_name=''
+    local cmd_desc=''
+    local text=''
+
+    if [[ $NUMBER_OF_COMMANDS -eq 1 ]]; then
+        text="\nDe volgende opdracht wordt uitgevoerd:\n"
+    else
+        text="\nDe volgende $NUMBER_OF_COMMANDS opdrachten worden achter \
+elkaar uitgevoerd:\n"
+    fi
+    for cmd_num in "${!COMMANDS[@]}"; do
+        cmd_name=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $1}')
+        cmd_desc=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $2}')
+        text=$text"$cmd_num. $cmd_name ($cmd_desc)\n"
+    done
+
+    if [[ $NUMBER_OF_COMMANDS -eq 1 ]]; then
+        prompt='Doorgaan en deze opdracht uitvoeren?'
+    else
+        prompt='Doorgaan en deze opdrachten uitvoeren?'
+    fi
+    if $OPTION_GUI; then
+        text=$text"\n$prompt"
+        if zenity   --question              \
+                    --width=400             \
+                    --height=100            \
+                    --title="$ZENITY_TITLE" \
+                    --text="$text"          \
+                    2> /dev/null; then
+            COMMANDS_EXECUTED=true
+        else
+            COMMANDS_EXECUTED=false
+        fi
+    else
+        printf '%s\n' "$text"
+        while true; do
+            read -rp "$prompt (J/n) " </dev/tty
+            case $REPLY in
+                j*|J*|'')
+                    COMMANDS_EXECUTED=true
+                    break
+                    ;;
+                n*|N*|'')
+                    COMMANDS_EXECUTED=false
+                    break
+                    ;;
+                *)
+                    echo -e "${UP_ONE_LINE}${ERASE_LINE}"
+                    continue
+                    ;;
+            esac
+        done
+    fi
+}
+
+#1.* 2.* 3.*
+verwerk_opdracht() {
+    local -i rc=0
+    local title="$ZENITY_TITLE"
+    local text="$cmd_name wordt uitgevoerd..."
+
+    set +o errexit
+
+    case $cmd_name in
+        apt-get*)
+            if $OPTION_GUI; then
+                vraag_wachtwoord
+                if [[ -z $PASSWD ]]; then
+                    return 0
+                fi
+                check_aptd
+                # shellcheck disable=SC2086
+                echo $PASSWD                |
+                sudo   --stdin $cmd_name -- |
+                zenity  --progress          \
+                        --pulsate           \
+                        --auto-close        \
+                        --no-cancel         \
+                        --width=500         \
+                        --height=50         \
+                        --title="$title"    \
+                        --text="$text"      \
+                        2> /dev/null
+                verwerk_rc $?
+            else
+                vraag_wachtwoord
+                if [[ -z $PASSWD ]]; then
+                    return 0
+                fi
+                echo $PASSWD |
+                sudo --stdin "$cmd_name" --
+                verwerk_rc $?
+            fi
+            COMMANDS_EXECUTED=true
+            ;;
+        hp-setup)
+            if $OPTION_GUI; then
+                $cmd_name --gui --
+                verwerk_rc $?
+            else
+                vraag_wachtwoord
+                if [[ -z $PASSWD ]]; then
+                    return 0
+                fi
+                echo $PASSWD |
+                sudo --stdin "$cmd_name" --interactive --
+                verwerk_rc $?
+            fi
+            ;;
+        *-info|setup)
+            # shellcheck disable=SC2086
+            "$PROGDIR"/$cmd_name $GUI_OPTION --
+            verwerk_rc $?
+            ;;
+        backup|instal|lsinstal|nas|restore)
+            vraag_wachtwoord
+            if [[ -z $PASSWD ]]; then
+                return 0
+            fi
+            echo $PASSWD |
+            sudo --stdin "$PROGDIR/$cmd_name" $GUI_OPTION --
+            verwerk_rc $?
+            ;;
+    esac
+
+    set +o errexit
+}
+
+#3.4
+check_aptd() {
+    local wait=10s
+
+    if ls /snap/core/*/var/cache/debconf/config.dat &> /dev/null; then
+        # Syteem met snaps.
+        while /usr/bin/sudo fuser \
+            /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock \
+            /var/cache/debconf/config.dat \
+            /snap/core/*/var/cache/debconf/config.dat &>/dev/null; do
+            printf '%s\n' \
+"Wacht $wait totdat andere softwarebeheerders klaar zijn..."
+            sleep $wait
+        done
+    else
+        # Syteem zonder snaps.
+        while /usr/bin/sudo fuser \
+            /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock \
+            /var/cache/debconf/config.dat &>/dev/null; do
+            printf '%s\n' \
+"Wacht $wait totdat andere softwarebeheerders klaar zijn..."
+            sleep $wait
+        done
+    fi
+}
+
+#1.* 2.* 3.*
+verwerk_rc() {
+    local rc=${1:-rc?}
+
+    case $rc in
+        $SUCCESS)
+            COMMAND_RESULT[$cmd_num]=$STATUS_SUCCESS
+            ;;
+        $WARNING)
+            COMMAND_RESULT[$cmd_num]=$STATUS_WARNING
+            ;;
+        *)
+            COMMAND_RESULT[$cmd_num]=$STATUS_ERROR
+            ;;
+        esac
+}
+
+#1.* 2.* 3.*
+toon_opdrachten_na_uitvoering() {
+    local prompt=''
+    local -i cmd_num=0
+    local cmd_name=''
+    local cmd_desc=''
+    local text=''
+    local temp_text_file=''
+
+    temp_text_file=$(mktemp -t "$PROGNAME-XXXXXXXXXX.txt")
+
+    if [[ $NUMBER_OF_COMMANDS -eq 1 ]]; then
+         echo -e "\nDe volgende opdracht is uitgevoerd:\n" > "$temp_text_file"
+    else
+        echo -e "\nDe volgende $NUMBER_OF_COMMANDS opdrachten zijn \
+uitgevoerd:\n" > "$temp_text_file"
+    fi
+    for cmd_num in "${!COMMANDS[@]}"; do
+        cmd_name=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $1}')
+        cmd_desc=$(echo "${COMMANDS[$cmd_num]}" | awk -F# '{print $2}')
+        cmd_result=${COMMAND_RESULT[$cmd_num]}
+        printf "%2d. %-${MAX_CMD_NAME_LEN}s %-${MAX_CMD_DESC_LEN}s %s\n" \
+"$cmd_num" "$cmd_name" "$cmd_desc" "$cmd_result" >> "$temp_text_file"
+    done
+
+    if $OPTION_GUI; then
+        verwijder_stuurtekens "$temp_text_file"
+        if ! zenity --text-info                     \
+                    --width=680                     \
+                    --height=300                    \
+                    --title="$ZENITY_TITLE"         \
+                    --filename="$temp_text_file"    \
+                    --font='Ubuntu Mono 12'         \
+                    2> /dev/null; then
+            true
+        fi
+    else
+        cat "$temp_text_file"
+    fi
+    rm "$temp_text_file"
+}
+
+#1.* 2.* 3.*
+vraag_wachtwoord() {
+    local text1='Wachtwoord opgeven geannuleerd.'
+    local text2='Geen wachtwoord opgegeven.'
+    local text3='Ongeldig wachtwoord opgegeven of geen beheerder.'
+
+    if [[ $PASSWD ]]; then
+        return 0
+    fi
+
+    if $OPTION_GUI; then
+        while true; do
+            sudo --reset-timestamp
+            PASSWD=$(
+                zenity  --password          \
+                        --title="$cmd_name" \
+                        2> /dev/null
+                )
+            # shellcheck disable=SC2181
+            if [[ $? -ne 0 ]]; then
+                PASSWD=''
+                COMMAND_RESULT[$cmd_num]="$STATUS_WARNING"
+                toon_waarschuwingstekst "$text1"
+                return 0
+            fi
+
+            if [[ -z $PASSWD ]]; then
+                if ! zenity --warning           \
+                            --width=300         \
+                            --height=100        \
+                            --text="$text2"     \
+                            2> /dev/null; then
+                    true
+                fi
+                continue
+            elif echo "$PASSWD" | sudo --stdin true 2> /dev/null; then
+                break
+            else
+                PASSWD=''
+                toon_fouttekst "$text3"
+            fi
+        done
+    else
+        read -rsp "[sudo] wachtwoord voor $USER: " </dev/tty
+        PASSWD=$REPLY
+        toon_tekst ''
+        if [[ -z $PASSWD ]]; then
+            PASSWD=''
+            COMMAND_RESULT[$cmd_num]="$STATUS_WARNING"
+            toon_waarschuwingstekst "\n$text2"
+            toon_waarschuwingstekst "$text1"
+            return 0
+        elif echo "$PASSWD" | sudo --stdin true 2> /dev/null; then
+            return 0
+        else
+            PASSWD=''
+            COMMAND_RESULT[$cmd_num]="$STATUS_WARNING"
+            toon_fouttekst "\n$text3"
+        fi
+    fi
+}
+
+term_script() {
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

@@ -1,0 +1,28 @@
+# ##############################################################################
+# Bestand:  git-gui.desktop
+# Doel:     Bureaubladbestand (starter) voor git gui.
+# Gebruik:  Door pakket scripts (aanbevolen)
+#      of:  Kopieer dit bestand naar:
+#           ~/.local/share/applications (per-user)
+#           of:
+#           /usr/share/applications (systemwide)
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Dit werk valt onder een Creative Commons Naamsvermelding-GelijkDelen 4.0
+# Internationaal licentie (CC BY-SA 4.0).
+# Bezoek http://creativecommons.org/licenses/by-sa/4.0/deed.nl om een kopie te
+# zien van de licentie of stuur een brief naar Creative Commons, PO Box 1866,
+# Mountain View, CA 94042, USA.
+# ##############################################################################
+# REL_NUM=01.00.01
+# REL_DAT=2019-12-07
+# REL_MSG='Invoering changelog in pakket scripts'
+
+[Desktop Entry]
+Name=Git Gui
+Comment=Een grafische user interface voor git
+Exec=git gui
+Icon=/usr/share/git-gui/lib/git-gui.ico
+Type=Application
+
+# Einde bureaubladbestand.

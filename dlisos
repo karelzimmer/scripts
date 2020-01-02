@@ -1,0 +1,185 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  dlisos
+# Doel:     Download Ubuntu beeldbestanden (.iso)
+# Gebruik:  In het terminalvenster:
+#           dlisos
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2014-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=15.00.13
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly SEARCH_FOR=SHA256SUMS
+readonly SOURCE_1=http://releases.ubuntu.com
+readonly SOURCE_2=http://cdimage.ubuntu.com
+readonly TARGET=$HOME/Downloads
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON'c'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON',checksums'
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON" --checksums"
+readonly USAGE="Gebruik: $PROGNAME  [-c|--checksums]
+                $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+
+Download Ubuntu beeldbestanden (.iso).
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  -c --checksums      Download alleen de controlebestanden
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Gobale variabelen
+# ------------------------------------------------------------------------------
+declare FULL_VS=''
+declare OPTION_CHECKSUMS=false
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            -c|--checksums)
+                OPTION_CHECKSUMS=true
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+}
+
+verwerk_invoer() {
+    source /etc/os-release
+    FULL_VS="$(echo "$VERSION" | awk '{print $1}')"
+    read -rp "Wat is de Ubuntu-versie? [$FULL_VS] " </dev/tty
+    if [[ $REPLY ]]; then
+        FULL_VS="$REPLY"
+    fi
+
+    if $OPTION_CHECKSUMS; then
+        download_checksums
+        toon_tekst "Controlebestanden zijn gedownload en staan in $TARGET."
+        quiet; exit $SUCCESS
+    fi
+
+    download_isos
+    download_checksums
+}
+
+download_isos() {
+    cd  "$TARGET"
+    rm --force {u,xu,lu}buntu-*.iso*
+
+    URL_LIST="$SOURCE_1/$FULL_VS/ubuntu-$FULL_VS-desktop-amd64.iso
+$SOURCE_1/$FULL_VS/ubuntu-$FULL_VS-live-server-amd64.iso
+$SOURCE_2/lubuntu/releases/$FULL_VS/release/lubuntu-$FULL_VS-desktop-amd64.iso
+$SOURCE_2/xubuntu/releases/$FULL_VS/release/xubuntu-$FULL_VS-desktop-amd64.iso"
+
+    # max-args=1 zorgt ervoor dat per invoerregel 1 opdracht wordt gestart.
+    # max-procs=4 zorgt ervoor dat maximaal 4 parallele taken worden gestart.
+    toon_tekst 'Downloaden beeldbestanden...'
+    echo "$URL_LIST" | xargs --max-args=1 --max-procs=4 wget
+}
+
+download_checksums() {
+    cd  "$TARGET"
+    rm --force {u,xu,lu}buntu-*-SHA256SUMS
+
+    toon_tekst 'Downloaden controlebestanden...'
+    wget    --output-document=ubuntu-$SEARCH_FOR                        \
+            $SOURCE_1/"$FULL_VS"/$SEARCH_FOR
+    wget    --output-document=ubuntu-alternate-installer-$SEARCH_FOR    \
+            $SOURCE_2/ubuntu/releases/"$FULL_VS"/release/$SEARCH_FOR
+    wget    --output-document=xubuntu-$SEARCH_FOR                       \
+            $SOURCE_2/xubuntu/releases/"$FULL_VS"/release/$SEARCH_FOR
+    wget    --output-document=lubuntu-$SEARCH_FOR                       \
+            $SOURCE_2/lubuntu/releases/"$FULL_VS"/release/$SEARCH_FOR
+}
+
+term_script() {
+    toon_tekst "
+Om de $SEARCH_FOR-controlebestanden op te splitsen typ, of kopieer en plak:
+${BLUE}spsums${NORMAL}"
+    quiet; exit $SUCCESS
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

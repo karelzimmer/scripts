@@ -1,0 +1,206 @@
+#!/bin/bash
+# ##############################################################################
+# Bestand:  getstarted
+# Doel:     Installeer scriptspakket en richt ontwikkelomgeving in
+# Gebruik:  In het terminalvenster:
+#           wget -O- karelzimmer.nl/s|bash
+#      of, als curl is geïnstalleerd:
+#           curl -L karelzimmer.nl/s|bash
+#      of, oude methode:
+#           wget karelzimmer.nl/s;bash s
+#      of, als pakket scripts is geïnstalleerd:
+#           getstarted
+# Auteur:   Karel Zimmer (http://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2016-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ------------------------------------------------------------------------------
+# Versie:   20.00.00    2019-11-06  Gebruik common.sh verwijderd
+# ##############################################################################
+readonly REL_NUM=20.03.01
+readonly REL_DAT=2020-01-02
+readonly REL_MSG='Variabele snap_loc toegeveogd aan check_aptd()'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+readonly PROGNAME=getstarted
+if [[ $1 ]]; then
+    printf '%s\n     %s\n     %s\n     %s\n' "Gebruik: $PROGNAME" \
+"of: wget -O- karelzimmer.nl/s|bash" "of: curl -L karelzimmer.nl/s|bash" \
+"of: wget karelzimmer.nl/s;bash s"
+    exit 0
+fi
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+readonly CHANGES=$HOME/A_naar_pc06_van_$HOSTNAME
+readonly SITE='https://karelzimmer.nl/data/linux'
+readonly SITE_DEB=$SITE/debs/scripts_1.0_all.deb
+readonly SITE_TAR=$SITE/arch/scripts.tar.gz
+readonly TEMP_DEB=$(mktemp -t "$PROGNAME-XXXXXXXXXX-$(basename $SITE_DEB)")
+readonly TEMP_TAR=$(mktemp -t "$PROGNAME-XXXXXXXXXX-$(basename $SITE_TAR)")
+
+# Terminalattributen ('man terminfo'). Gebruik ${<variabele_naam>}.
+readonly BOLD=$(tput bold)
+readonly GREEN=${BOLD}$(tput setaf 2)
+readonly NORMAL=$(tput sgr0)
+readonly RED=${BOLD}$(tput setaf 1)
+readonly YELLOW=${BOLD}$(tput setaf 3)
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+init_script() {
+    # Script-hardening
+    set -o errexit
+    set -o errtrace
+    set -o nounset
+    set -o pipefail
+    trap 'signal $? ERR'    ERR
+    trap 'signal $? EXIT'   EXIT
+    trap 'signal $? SIG'    SIGINT SIGTERM SIGHUP
+
+    printf '\n%s\n' "${GREEN}Opdracht $PROGNAME is succesvol gestart.${NORMAL}"
+}
+
+signal() {
+    local -i rc=${1:-1}
+    local signal=${2:-signal?}
+
+    case $signal in
+        ERR)
+            printf '\n%s\n' "${RED}Opdracht $PROGNAME is afgebroken!${NORMAL}" \
+>&2
+            exit "$rc"
+            ;;
+        EXIT)
+            rm  --force     \
+                s           \
+                s.{1..99}   \
+                "$TEMP_DEB" \
+                "$TEMP_TAR"
+            exit "$rc"
+            ;;
+        SIG)
+            printf '\n%s\n' "${RED}Opdracht $PROGNAME is afgebroken!${NORMAL}" \
+>&2
+            exit 1
+            ;;
+    esac
+}
+
+verwerk_script() {
+    printf  '\n%s\n' "${BOLD}Download scriptspakket...${NORMAL}"
+    wget    --output-document="$TEMP_DEB"   \
+            $SITE_DEB
+    printf  '\n%s\n' "${BOLD}Installeer scriptspakket...${NORMAL}"
+
+    # Bij Live-user ubuntu blijft 'sudo --validate' om een wachtwoord vragen...
+    if [[ $USER != 'ubuntu' ]]; then
+        sudo --validate
+    fi
+
+    check_aptd
+    sudo    dpkg            \
+            --install       \
+            --force-depends \
+            "$TEMP_DEB"
+    sudo    apt-get         \
+            --fix-broken    \
+            --yes           \
+            install
+
+    if [[ $HOSTNAME != 'pc06' ]] && [[ $USER = 'karel' || $USER = 'ubuntu' ]]
+    then
+        printf  '\n%s\n' "${BOLD}Download scriptsarchief...${NORMAL}"
+        rm      --force                             \
+                --recursive                         \
+                "$CHANGES"                          \
+                "$CHANGES.tar.xz"                   \
+                "$HOME/debs"                        \
+                "$HOME/Documenten"/*.pdf            \
+                "$HOME/Documenten/Checklists"       \
+                "$HOME/Programma's"                 \
+                "$HOME/scripts"                     \
+                "$HOME/scripts.arch"                \
+                "$HOME/scripts.dev"                 \
+                "$HOME/ToDO"
+        wget    --output-document="$TEMP_TAR"       \
+                $SITE_TAR
+        printf  '\n%s\n' "${BOLD}Richt ontwikkelomgeving in...${NORMAL}"
+        tar     --extract                           \
+                --gzip                              \
+                --directory="$HOME"                 \
+                --file="$TEMP_TAR"
+        mkdir   --parents                           \
+                "$CHANGES/Documenten/Checklists"    \
+                "$CHANGES/scripts/.pixmaps"         \
+                "$CHANGES/scripts/.sounds"
+    fi
+}
+
+check_aptd() {
+    local snap_loc=''
+    local wait=10s
+
+    if ls /snap/core/*/var/cache/debconf/config.dat &> /dev/null; then
+        snap_loc="/snap/core/*/var/cache/debconf/config.dat"
+    fi
+    while /usr/bin/sudo fuser \
+        /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock \
+        /var/cache/debconf/config.dat "$snap_loc" &> /dev/null; do
+        printf '%s\n' \
+"${BOLD}Wacht $wait totdat andere softwarebeheerders klaar zijn...${NORMAL}"
+        sleep $wait
+    done
+}
+
+term_script() {
+    printf  '\n%s\n\n%s\n' \
+"${GREEN}Opdracht $PROGNAME is succesvol uitgevoerd.${NORMAL}" \
+"${YELLOW}Volg nu de stappen zoals beschreven in Checklist installatie.${NORMAL}
+
+Bekijk de checklist via een klik op Activiteiten (linksboven) of
+druk kort op de Windows/Apple-toets, typ 'sta' en klik op Start Hier.
+
+Kies 1 'Checklist installatie' en klik op Oké.
+Volg de aanwijzingen op het scherm en de stappen in de checklist.
+
+N.B.
+De checklist is ook te vinden op de site
+https://karelzimmer.nl onder Linux."
+
+    exit 0
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

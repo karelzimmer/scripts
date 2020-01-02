@@ -1,0 +1,99 @@
+.\" # ##########################################################################
+.\" # Bestand:  ckname.1
+.\" # Doel:     Man-pagina van script ckname
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man ckname
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=11.01.16
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH CKNAME "1" "2019-12-11" "11.01.16" "ckname"
+
+.SH NAAM
+ckname \- Controleer NTFS map- en bestandsnamen, en bestandsnaamlengte
+
+.SH SAMENVATTING
+.B ckname
+[OPTIE...] [--] [\fIMAP\fR]
+
+.SH BESCHRIJVING
+\fBckname\fR controleert NTFS map- en bestandsnamen op toegestane tekens, en
+bestandsnaamlengte op maximale lengte bij gebruik van Versleutelde
+Persoonlijke mappan (VPM, eCryptfs).
+
+Standaard, tenzij \fIMAP\fR is opgegeven, wordt gezocht vanaf de map van waaruit
+deze opdracht wordt uitgevoerd.
+
+Voer deze opdracht uit vóór het plaatsen van bestanden op een NTFS \
+(netwerk)schijf,
+en vóór het maken van een back-up (reservekopie) op een niet-encrypted omgeving
+naar een encrypted omgeving (Versleutelde Persoonlijke Mappen, eCryptfs).
+
+Bij NTFS zijn niet toegestaan de tekens ? " / \ < > * | :
+.br
+Bij ext4   is niet toegestaan het teken     /
+.br
+daarom testen we hier op de tekens      ? "   \ < > * | :
+
+Bij NTFS zijn ook symbolische verwijzingen niet toegestaan.
+
+Verder wordt ook de lengte van de map- en bestandsnaam gecontroleerd.
+Deze mag voor Versleutelde Persoonlijke Mappen, met eCryptfs, niet langer zijn
+dan 142 tekens.
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tckname').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2012-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBcheckhtml\fR(1),
+\fBcommon.sh\fR(1),
+\fBhttps://karelzimmer.nl\fR

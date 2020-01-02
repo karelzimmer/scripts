@@ -1,0 +1,123 @@
+.\" # ##########################################################################
+.\" # Bestand:  lshosts.1
+.\" # Doel:     Man-pagina van script lshosts
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man lshosts
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=12.01.16
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH LSHOSTS "1" "2019-12-11" "12.01.16" "lshosts"
+
+.SH NAAM
+lshosts \- Toon computernamen en IP-nummers
+
+.SH SAMENVATTING
+.B lshosts
+[OPTIE...]
+
+.SH BESCHRIJVING
+\fBlshosts\fR toont bij een computernaam het IP-nummer (en MAC-adres).
+
+De gegevens worden getoond voor alle aangesloten en draaiende computers in het
+netwerk.
+
+Hiervoor wordt opdracht \fBarp-scan\fR gebruikt die een lijst oplevert zoals
+\fIIP-nummer\fR \fIMAC-adres\fR \fILeverancier\fR.
+
+Het MAC-adres wordt opgezocht in bestand $HOME/.lshosts.txt, met als indeling
+\fIMAC-adres\fR \fIcomputernaam\fR.
+
+Ieder door de arp-scan gevonden \fIMAC-adres\fR wordt opgezocht in bestand
+$HOME/.lshosts.txt.
+
+Vervolgens wordt de \fIcomputernaam\fR, het \fIIP-nummer\fR, en het
+\fIMAC-adres\fR getoond.
+
+Het bestand $HOME/.lshosts.txt dient door de gebruiker te worden aangemaakt en
+onderhouden.
+
+Met optie \fB--edit\fR (\fB-e\fR) is het bestand te wijzigen.
+
+De relatie tussen MAC-adres en computernaam kan worden opgezocht met:
+.br
+- \fBsudo arp-scan --localnet\fR
+.br
+- \fBsudo nmap -A 192.168.192.*\fR
+.br
+  -of-
+.br
+  \fBsudo nmap -A 192.168.192.1-100\fR
+.br
+- op de router het DHCP overzicht
+.br
+- op de apparaten met een internetverbinding
+
+Zie ook:
+.br
+- http://www.macvendors.com/
+.br
+- http://www.macvendorlookup.com/
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tlshosts').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+$HOME/.lshosts.txt
+.RS
+Bestand met vertaling MAC-adres naar computernaam.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2016-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBarp-scan\fR(1),
+\fBcommon.sh\fR(1),
+\fBnmap\fR(1),
+\fBhttps://karelzimmer.nl\fR

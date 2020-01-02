@@ -1,0 +1,114 @@
+.\" # ##########################################################################
+.\" # Bestand:  gset.1
+.\" # Doel:     Man-pagina van script gset
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man gset
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=08.01.20
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH GSET "1" "2019-12-11" "08.01.20" "gset"
+
+.SH NAAM
+gset \- Toon wijzigingen in de configuratie-database na een wijziging
+uitgevoerd met de grafische werkomgeving (GUI)
+
+.SH SAMENVATTING
+.B gset
+[OPTIE...]
+
+.SH BESCHRIJVING
+Opdracht \fBgset\fR toont wijzigingen in de configuratie-database na een \
+wijziging uitgevoerd met de grafische werkomgeving (GUI).
+
+Het volgende wordt uitgevoerd:
+.RS
+- inhoud configuratie-database ervoor vastleggen,
+.br
+- gebruiker voert wijzigingen met de GUI uit,
+.br
+- inhoud configuratie-database erna vastleggen,
+.br
+- wijzigingen in de configuratie-database rapporteren.
+.RE
+
+Met de opdracht \fBgsettings set \fIschema\fR\fB[:\fIpath\fR\fB] \fIkey\fR zijn
+daarna de wijzigingen op te slaan in de configuratie-database, en hoeven deze
+niet meer, met de hand, met de GUI te worden uitgevoerd.
+
+Voor de systemen met LXDE- (e.g. Lubuntu) en Xfce-werkomgeving (e.g. Xubuntu)
+kan via het Terminal-venster met opdrachten opgezocht worden wat er gewijzigd
+dient te worden:
+.RS
+\fBxfconf-query --list\fR
+    - geeft overzicht kanalen/channels,
+.sp
+\fBxfconf-query --channel \fIkanaal\fR\fB --monitor --verbose\fR
+    - breng nu de wijzigingen via de GUI aan,
+.sp
+\fBxfconf-query --channel \fIkanaal\fR\fB --list --verbose\fR
+    - geeft overzicht eigenschappen/properties, en
+.sp
+\fBxfconf-query --channel \fIkanaal\fR\fB --property \fIeigenschap\fR\fB
+--set \fIwaarde\fR
+    - vul waarde in voor een property.
+.RE
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tgset').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2015-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+
+.SH ZIE OOK
+\fBcommon.sh\fR(1),
+\fBgsettings\fR(1),
+\fBxfconf-query\fR(1),
+\fBhttps://karelzimmer.nl\fR

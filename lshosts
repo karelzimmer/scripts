@@ -1,0 +1,198 @@
+#!/bin/bash
+# shellcheck source=common.sh
+# ##############################################################################
+# Bestand:  lshosts
+# Doel:     Toon computernamen en IP-nummers
+# Gebruik:  In het terminalvenster:
+#           lshosts
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2016-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+readonly REL_NUM=12.01.16
+readonly REL_DAT=2019-12-11
+readonly REL_MSG='Beschrijving opties aangepast'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+source "$(dirname "$0")"/common.sh
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+declare -ir IP_NUMBER_LENGTH=15
+declare -ir MAC_ADDRESS_LENGTH=17
+readonly COMPUTER_NAME_LENGTH=24
+readonly MAC_TO_HOST_FILE=".$PROGNAME.txt"
+readonly MAC_TO_HOST=/root/$MAC_TO_HOST_FILE
+readonly RUN_AS_SUPERUSER=true
+
+readonly OPTIONS_SHORT=$OPTIONS_SHORT_COMMON'e'
+readonly OPTIONS_LONG=$OPTIONS_LONG_COMMON',edit'
+readonly OPTIONS_TAB_COMPLETION=$OPTIONS_TAB_COMPLETION_COMMON' --edit'
+readonly USAGE="Gebruik: $PROGNAME [-e|--edit]
+                $OPTIONS_USAGE_COMMON
+
+$OPTIONS_LONG_SHORT"
+readonly HELP="Gebruik: $PROGNAME [OPTIE...]
+Toon computernamen en IP-nummers.
+
+Opties:
+  $OPTIONS_LONG_SHORT
+
+  -e --edit           Wijzig hostsfile
+$OPTIONS_HELP_COMMON"
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare OUTPUT=''
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+# Scripts-databestand aanmaken.
+{
+    if [[ ! -f $MAC_TO_HOST ]]; then
+        touch "$MAC_TO_HOST" |& $LOGCMD
+    fi
+}
+
+controleer_invoer() {
+    local -i getopt_rc=0
+    local parsed=''
+
+    set +o errexit
+    parsed=$(getopt --alternative                       \
+                    --options       "$OPTIONS_SHORT"    \
+                    --longoptions   "$OPTIONS_LONG"     \
+                    --name          "$PROGNAME"         \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        printf '%s\n' "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+    eval set -- "$parsed"
+    verwerk_algemene_opties "$@"
+    # Geen grafische modus.
+    OPTION_GUI=false
+
+    while true; do
+        case $1 in
+            -e|--edit)
+                sudo vi "$MAC_TO_HOST"
+                quiet; exit $SUCCESS
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [[ "$*" ]]; then
+        printf '%s\n%s\n' "Geen argumenten opgeven." "$HELPLINE" >&2
+        quiet; exit $ERROR
+    fi
+
+    controleer_gebruiker
+
+    if [[ ! -f "$MAC_TO_HOST" ]]; then
+        printf '%s\n' "Bestand '$MAC_TO_HOST_FILE' niet gevonden in de \
+Persoonlijke map van de superuser." >&2
+        quiet; exit $ERROR
+    fi
+}
+
+verwerk_invoer() {
+    local record=''
+    local recordtype=''
+    local ip=''
+    local mac=''
+    local -i maclen=0
+    local host=''
+
+    printf  '%-*s %-*s %-*s\n'                      \
+            $COMPUTER_NAME_LENGTH   'Computernaam'  \
+            $IP_NUMBER_LENGTH       'IP-nummer'     \
+            $MAC_ADDRESS_LENGTH     'MAC-adres'
+    printf  '%.*s %.*s %.*s\n'                      \
+            $COMPUTER_NAME_LENGTH   "$DASHES"       \
+            $IP_NUMBER_LENGTH       "$DASHES"       \
+            $MAC_ADDRESS_LENGTH     "$DASHES"
+
+    OUTPUT=$(mktemp -t "$PROGNAME-XXXXXXXXXX.lst")
+
+    while read -r record; do
+        recordtype=${record:0:1}
+        if [[ $recordtype = '#' ]]; then
+            continue
+        fi
+        ip=$(echo "$record"     | awk '{print $1}')
+        mac=$(echo "$record"    | awk '{print $2}')
+        maclen=${#mac}
+        if [[ $maclen -ne 17 ]]; then
+            continue
+        fi
+        host="$(
+            if !    grep    --regexp="$mac" \
+                            "$MAC_TO_HOST"  |
+                    awk '{print $2;exit}'; then
+                echo
+            fi
+            )"
+        host="${host:--Niet in $MAC_TO_HOST_FILE-}"
+        printf  '%-*s %-*s %-*s\n'                  \
+                $COMPUTER_NAME_LENGTH   "$host"     \
+                $IP_NUMBER_LENGTH       "$ip"       \
+                $MAC_ADDRESS_LENGTH     "$mac"      >> "$OUTPUT"
+    done < <(arp-scan --localnet --ignoredups)
+
+    sort    "$OUTPUT"   |& $LOGCMD
+
+    cat "$OUTPUT"
+}
+
+term_script() {
+    rm "$OUTPUT"
+    quiet; exit $SUCCESS
+
+}
+
+verwerk_script() {
+    controleer_invoer "$@"
+    verwerk_invoer
+}
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+main() {
+    init_script
+    verwerk_script "$@"
+    term_script
+}
+
+main "$@"
+
+# Einde script

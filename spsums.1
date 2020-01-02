@@ -1,0 +1,143 @@
+.\" # ##########################################################################
+.\" # Bestand:  spsums.1
+.\" # Doel:     Man-pagina van script spsums
+.\" # Gebruik:  In het terminalvenster:
+.\" #           man spsums
+.\" # Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+.\" # ##########################################################################
+.\" Versiegegevens worden bijgehouden door deploy
+.\" REL_NUM=07.02.12
+.\" REL_DAT=2019-12-11
+.\" REL_MSG='Beschrijving opties aangepast'
+.\"
+.TH SPSUMS "1" "2019-12-11" "07.02.12" "spsums"
+
+.SH NAAM
+spsums \- Splits (SHA256) controlebestanden op
+
+.SH SAMENVATTING
+.B spsums
+[OPTIE...]
+
+.SH BESCHRIJVING
+\fBbackup\fR splitst controlebestanden op.
+
+Combineer in map $HOME/Downloads de controlebestanden (SHA256SUMS) en
+beeldbestanden (.iso) tot \fIversie\fR.iso en \fIversie\fR.iso.sha256sum.
+
+De regels in de gevonden controlebestanden worden opgesplitst naar
+controlebestanden (\fI\fBversie\fR\fI.iso.sha256sum\fR) als het bijbehorende
+beeldbestand (\fI\fBversie\fR\fI.iso\fR) aanwezig is.
+
+De controlebestanden worden na het opsplitsen verwijderd.
+
+De gedownloade beeldbestanden (.iso) en door dit script aangemaakte
+controlebestanden (.iso.sha256sum) kunnen zo snel gecontroleerd worden en naar
+een (opstartbare) USB-stick gekopieerd worden.
+
+Controleren via:
+\fBcd $HOME/Downlaods;sha256sum --check *.sha256sum\fR
+
+USB-stick aanmaken via:
+\fBmkusbs\fR
+
+.SH OPTIES
+Lange opties kunnen worden afgekort, zolang de afkorting uniek blijft.
+.TP
+\fB-c\fR, \fB--checksums\fR
+Download alleen de controlebestanden.
+.TP
+\fB-d\fR, \fB--debug\fR
+Geef foutopsporingsinformatie weer in het logboek (gebruik 'journalctl -ab \
+-tspsums').
+.TP
+\fB-g\fR, \fB--gui\fR
+Start indien mogelijk in grafische modus (gui = graphical user interface).
+.TP
+\fB-h\fR, \fB--help\fR
+Toon een een korte omschrijving van de beschikbare opties en stoppen.
+.TP
+\fB-u\fR, \fB--usage\fR
+Toon de beschikbare opties en stoppen.
+.TP
+\fB-v\fR, \fB--version\fR
+Toon de versie, de auteur, en het auteursrecht, en stoppen.
+.TP
+\fB--\fR
+Een -- geeft het einde van de opties aan en schakelt de verdere verwerking van
+opties uit.
+Alle argumenten na de -- worden behandeld als bestandsnamen en argumenten.
+Een argument van - is gelijk aan --.
+
+.SH STOPSTATUS
+Normaal wordt afsluitwaarde 0 teruggegeven; als er een fout optreedt, is de
+afsluitwaarde 1. Als er een waarschuwing optreedt, is de afsluitwaarde 2.
+
+.SH BESTANDEN
+/usr/local/bin/common.sh
+.RS
+Algemene variabelen en functies voor bash scripts.
+.RE
+
+$HOME/Downloads/*.iso
+.RS
+Beeldbestanden.
+.RE
+
+$HOME/Downloads/*.iso.sha256
+.RS
+Opgesplitste controlebestanden.
+.RE
+
+.SH VOORBEELDEN
+
+Gedownload is het beeldbestand:
+    \fI\fBubuntu-<VERSIE>-desktop-amd64\fR\fI.iso\fR
+
+Gedownload is het SHA256SUMS-controlebestand \fISHA256SUMS\fR met als inhoud:
+        4bcec83ef856c50c6866f3b0f3942e011104b5ecc6d955d1e7061faff86070d4 \
+*\fI\fBubuntu-<VERSIE>-desktop-amd64\fR\fI.iso\fR
+        d2cca0bac14fa76949e3c7b846dcf7e0d17a6fc82ae8f557c8f25bc85f26ff5f \
+*ubuntu-<VERSIE>-preinstalled-server-armhf+raspi2.img.xz
+        b8b172cbdf04f5ff8adc8c2c1b4007ccf66f00fc6a324a6da6eba67de71746f6 \
+*ubuntu-<VERSIE>-server-amd64.img
+        b8b172cbdf04f5ff8adc8c2c1b4007ccf66f00fc6a324a6da6eba67de71746f6 \
+*ubuntu-<VERSIE>-server-amd64.iso
+        9da175f2c637fdf9fe51eed7e49e5520b52508c11dff99eb73a69ee7b12469aa \
+*ubuntu-<VERSIE>-server-ppc64el.iso
+        2c34fcef8e572d3492c30f553840458ff9bc46b9efd5b50094f43ccb9d0a3aa4 \
+*ubuntu-<VERSIE>-server-s390x.iso
+
+Voor ieder beeldbestand wordt in \fISHA256SUMS\fR een controlesom opgezocht \
+en een controlebestand gemaakt:
+.br
+Controlebestand \
+\fI\fBubuntu-<VERSIE>-desktop-amd64\fR\fI.iso.sha256sum\fR met als \
+inhoud:
+        4bcec83ef856c50c6866f3b0f3942e011104b5ecc6d955d1e7061faff86070d4 \
+*\fI\fBubuntu-<VERSIE>-desktop-amd64\fR\fI.iso\fR
+.br
+
+Controlebestand \fISHA256SUMS\fR wordt verwijderd.
+De controlebestanden kunnen (opnieuw) gedownload worden met opdracht \
+\fBdlisos\fR en optie \fB--checksums\fR.
+
+.SH AUTEUR
+Geschreven door Karel Zimmer, https://karelzimmer.nl, info@karelzimmer.nl.
+
+.SH AUTEURSRECHT
+Auteursrecht (c) 2016-2020 Karel Zimmer.
+.br
+Dit is vrije software: u mag het vrijelijk wijzigen en verder verspreiden.
+.br
+De precieze licentie is GPL-3+: GNU General Public License versie 3 of later.
+.br
+Zie http://gnu.org/licenses/gpl.html voor de volledige (Engelse) tekst.
+.br
+Deze software kent GEEN GARANTIE, voor zover de wet dit toestaat.
+
+.SH ZIE OOK
+\fBcommon.sh\fR(1),
+\fBdlsio\fR(1),
+\fBmkusbs\fR(1),
+\fBhttps://karelzimmer.nl\fR
