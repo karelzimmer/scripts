@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Back-up van Persoonlijke map terugzetten.
+
+source=$(ls --directory /media/"$USER/"*/backup-"$HOSTNAME-$USER" 2> /dev/null)
+target=$HOME
+if [[ -z $source || $(echo "$source" | wc --lines) -gt 1 ]]; then
+    echo "Sluit één USB-harddisk aan met hierop map 'backup-$HOSTNAME-$USER'."
+    exit 1
+fi
+rc=0
+
+rsync   --archive                   \
+        --verbose                   \
+        --human-readable            \
+        "$source"/                  \
+        "$target"                   || rc=$?
+
+exit $rc

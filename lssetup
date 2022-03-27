@@ -1,0 +1,27 @@
+#!/bin/bash
+
+PROGRAM_NAME=lssetup
+
+## ALS ROOT ##
+# Gebruikersfoto:
+sudo grep 'Icon=' /var/lib/AccountsService/users/"${SUDO_USER:-$USER}" | tee /home/"${SUDO_USER:-$USER}"/.${PROGRAM_NAME}_gebruikersfoto.txt 1>/dev/null
+sudo chown "${SUDO_USER:-$USER}:${SUDO_USER:-$USER}" /home/"${SUDO_USER:-$USER}"/.${PROGRAM_NAME}_gebruikersfoto.txt
+## ALS ROOT ##
+
+# Als in /home/"${SUDO_USER:-$USER}"/.${PROGRAM_NAME}_gebruikersfoto.txt staat:
+# Icon=/var/lib/AccountsService/icons/$USER
+# Check dan "$HOME"/.${PROGRAM_NAME}_gebruikersfoto
+cp /var/lib/AccountsService/icons/"$USER" "$HOME"/.${PROGRAM_NAME}_gebruikersfoto
+
+# Bureaubladachtergrond:
+gsettings get org.gnome.desktop.background picture-uri > "$HOME"/.${PROGRAM_NAME}_bureaubladachtergrond
+
+
+# Favorieten:
+gsettings get org.gnome.shell favorite-apps > "$HOME"/.${PROGRAM_NAME}_favorieten
+
+
+# Opdrachtgeschiedenis:
+HISTFILE=~/.bash_history
+set -o history
+history > "$HOME"/.${PROGRAM_NAME}_opdrachtgeschiedenis

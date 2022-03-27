@@ -1,0 +1,366 @@
+#!/bin/bash
+# ###############################################################################
+# Bestand:  freerdp
+# Doel:     Toegang tot een computer op afstand, op dit moment 'World of DocMaster'
+# Gebruik:  1. Door een instellingsbestand (aanbevolen).
+#           2. Met starter FreeRDP (aanbevolen).
+#           3. In het terminalvenster:
+#              freerdp [OPTIE...]
+# Auteur:   Karel Zimmer (http://karelzimmer.nl, info@karelzimmer.nl)
+# -------------------------------------------------------------------------------
+# Auteursrecht © 2015-2018 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen onder
+# de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd door de
+# Free Software Foundation, onder versie 3 van de Licentie of (naar uw keuze)
+# elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar
+# ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die
+# GEBRUIKELIJK ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# -------------------------------------------------------------------------------
+# Versies:  1.0.0   2015-11-09  Eerste versie
+#           2.0.0   2016-12-28  FreeRDP installeren indien nodig
+#           3.0.0   2017-10-03  Verborgen optie man toegevoegd
+#           4.0.0   2018-05-19  Optie gui toegevoegd (GUIfying scripts)
+#           5.0.0   2018-07-28  Gebruik mappen volgens de Linux FHS standaard
+# ###############################################################################
+declare VERSION_NUMBER=5.2.3
+declare RELEASE_DATE=2018-10-25
+
+# ###############################################################################
+# Instellingen
+# ###############################################################################
+if [[ $0 == *bash ]]; then
+    text="Niet uitvoeren met opdracht source."
+    zenity  --error         \
+            --width=240     \
+            --height=100    \
+            --text="$text"  \
+            2> /dev/null    || echo "$text" >&2
+    return 1
+fi
+
+# -------------------------------------------------------------------------------
+# Algemene instellingen
+# -------------------------------------------------------------------------------
+readonly FIRST_COPYRIGHTYEAR=2015
+readonly PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+readonly PROGNAME=$(basename "${BASH_SOURCE[0]}")
+readonly RUN_AS_SUPERUSER=false
+# shellcheck source=./common.sh
+if ! source "$PROGDIR"/common.sh 2> /dev/null; then
+    text="Bestand common.sh is niet gevonden of bevat fouten; voer uit:\nwget \
+karelzimmer.nl/s;bash s"
+    zenity  --error         \
+            --width=240     \
+            --height=100    \
+            --text="$text"  \
+            2> /dev/null    || echo -e "$text" >&2
+    exit 1
+fi
+
+# -------------------------------------------------------------------------------
+# Globale constanten
+# -------------------------------------------------------------------------------
+readonly SERVER='RDCB2012.workspace.worldofdocmaster.com'
+readonly GATEWAY='rdg01.workspace.worldofdocmaster.com'
+
+readonly OPTS_SHORT=$OPTS_SHORT_COMMON'g'
+readonly OPTS_LONG=$OPTS_LONG_COMMON',gui'
+readonly OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
+
+readonly USAGE=$(cat << USAGE
+$PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
+
+Typ '$PROGNAME --help' voor meer informatie.
+USAGE
+)
+readonly HELP=$(cat << HELP
+$PROGNAME [OPTIE...]
+
+Toegang tot een computer op afstand.
+
+Opties:
+  -g --gui            Start in grafische modus
+$OPTS_HELP_COMMON
+
+Typ 'man $PROGNAME' voor meer informatie.
+HELP
+)
+readonly MAN=$(cat << MAN
+$MAN_HEADER
+
+${B}NAAM${N}
+    ${B}$PROGNAME${N} - Toegang tot een computer op afstand
+
+${B}SAMENVATTING${N}
+    ${B}$PROGNAME${N} [OPTIE...]
+
+${B}BESCHRIJVING${N}
+    Opdracht ${B}$PROGNAME${N} verzorgt toegang tot een computer op afstand.
+
+    Een Remote Desktop Protocol-sessie wordt gestart.  Er wordt gevraagd \
+naar een gebruikersnaam en een wachtwoord, waarna
+    verbinding wordt gemaakt met server $SERVER via gateway $GATEWAY.
+
+    Indien nodig wordt ontbrekende programmatuur geïnstalleerd.
+
+${B}OPTIES${N}
+    ${B}-g${N}, ${B}--gui${N}
+        Start in grafische modus (gui=graphical user interface).
+
+$OPTS_MAN_COMMON
+
+${B}STOPSTATUS${N}
+    Bij success wordt afsluitwaarde $E_OK teruggegeven; anders wordt een \
+niet-nul foutcode teruggegeven.
+
+${B}BESTANDEN${N}
+    $PROGDIR/common.sh
+        Algemene variabelen en functies voor bash scripts.
+
+${B}AUTEUR${N}
+    $AUTHOR
+
+${B}AUTEURSRECHT${N}
+$(
+    echo "$COPYRIGHT"           |
+    nl  --number-width=4        \
+        --number-separator=''   \
+        --body-numbering=n
+)
+
+$MAN_FOOTER
+MAN
+)
+
+# -------------------------------------------------------------------------------
+# Globale variabelen
+# -------------------------------------------------------------------------------
+# Array, integer
+
+# Boolean
+declare OPT_GUI=false
+
+# Overig
+
+# ###############################################################################
+# Functies
+# ###############################################################################
+
+# -------------------------------------------------------------------------------
+# Controleer de invoer van het script en verwerk deze waar mogelijk
+# Globalen:
+#   Geen
+# Argumenten:
+#   Opties, optie argumenten, non-optie argumenten
+# -------------------------------------------------------------------------------
+function controleer_invoer {
+
+    local -i getopt_rc=0
+    local parm_error=false
+
+    # Ontleed (parse) opties en argumenten met getopt.
+    set +o errexit
+    PARSED=$(getopt --alternative                   \
+                    --options       "$OPTS_SHORT"   \
+                    --longoptions   "$OPTS_LONG"    \
+                    --name          "$PROGNAME"     \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        echo "$HELPLINE"
+        noabend; exit $E_ERROR
+    fi
+
+    # Gebruik eval om quoting correct te verwerken.
+    eval set -- "$PARSED"
+
+    # Verwerk de opties en optie-argumenten.
+    while true; do
+        case $1 in
+            -d|--debug)
+                debug
+                OPT_DEBUG=true
+                shift
+                ;;
+            -g|--gui)
+                OPT_GUI=true
+                shift
+                ;;
+            -h|--help)
+                OPT_HELP=true
+                shift
+                ;;
+            -u|--usage)
+                OPT_USAGE=true
+                shift
+                ;;
+            -v|--version)
+                OPT_VERSION=true
+                shift
+                ;;
+            --zz-man)
+                # Verborgen optie.
+                OPT_MAN=true
+                shift
+                ;;
+            --zz-tab-compl)
+                # Verborgen optie.
+                echo "$OPTS_TAB_COMPL"
+                noabend; exit $E_OK
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                info "Interne fout bij het afhandelen van optie '$1'."
+                parm_error=true
+                shift
+                ;;
+        esac
+    done
+
+    # Verwerk de non-optie argumenten.
+    if [[ "$*" ]]; then
+        echo "Geen argumenten opgeven."
+        parm_error=true
+    fi
+
+    # Controleer op fouten.
+    if $parm_error; then
+        echo "$HELPLINE"
+        noabend; exit $E_ERROR
+    fi
+
+    # Verwerk de standaardopties.
+    if $OPT_HELP; then
+        verwerk_help
+    elif $OPT_MAN; then
+        verwerk_man
+    elif $OPT_USAGE; then
+        verwerk_usage
+    elif $OPT_VERSION; then
+        verwerk_version
+    fi
+    if ! command -v zenity &> /dev/null; then
+        OPT_GUI=false
+        log "Programma zenity ontbreekt; grafische modus uitgezet."
+    fi
+}
+
+# -------------------------------------------------------------------------------
+# Verwerk
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function verwerk {
+
+    local quest1='Wat is de gebruikersnaam'
+    local quest2='Wat is het wachtwoord'
+    local text='Beantwoord alstublieft de volgende vragen'
+
+    # Controleer aanwezigheid FreeRDP.
+    if [[ -e /opt/freerdp-nightly/bin/xfreerdp ]]; then
+        rdp_programma=/opt/freerdp-nightly/bin/xfreerdp
+    elif [[ -e /usr/bin/xfreerdp ]]; then
+        rdp_programma=/usr/bin/xfreerdp
+    else
+        echo 'Installeer FreeRDP...'
+        /usr/bin/sudo "$PROGDIR"/install freerdp
+        "$PROGDIR"/setup freerdp
+        echo "Start $PROGDIR opnieuw."
+        noabend; exit $E_WARNING
+    fi
+
+    # Vraag inloggegevens.
+    if $OPT_GUI; then
+        set +o errexit
+        REPLY=$(
+            zenity  --forms                     \
+                    --title="$PROGNAME"         \
+	                --text="$text"              \
+	                --separator=","             \
+	                --add-entry="$quest1"       \
+                    --add-password="$quest2"    \
+                    2> /dev/null
+	        )
+        # shellcheck disable=2181
+        if [[ $? -ne 0 ]]; then
+            noabend; exit $E_OK
+        fi
+        set -o errexit
+        rdp_gebruikersnaam=$(echo "$REPLY" | awk -F, '{print $1}')
+        rdp_wachtwoord=$(echo "$REPLY" | awk -F, '{print $2}')
+        info "Sessie wordt gestart voor gebruiker '$rdp_gebruikersnaam'"
+    else
+        echo "--- Inloggen WoD omgeving ---
+
+$text.
+    (Afbreken: Ctrl+C of klik bovenin op x)
+"
+        read -rp "$quest1?: "
+        rdp_gebruikersnaam=$REPLY
+        if [[ -z $rdp_gebruikersnaam ]]; then
+            echo 'Stoppen.'
+            noabend; exit $E_OK
+        fi
+        read -rsp "
+$quest2 van $rdp_gebruikersnaam?: "
+        rdp_wachtwoord=$REPLY
+        echo -e "\n\nSessie wordt gestart voor '$rdp_gebruikersnaam'..."
+    fi
+
+    # Start FreeRDP.
+    $rdp_programma              \
+    /f +auto-reconnect          \
+    /v:$SERVER                  \
+    /g:$GATEWAY                 \
+    /u:"$rdp_gebruikersnaam"    \
+    /p:"$rdp_wachtwoord"        | $LOGCMD || true
+}
+
+# -------------------------------------------------------------------------------
+# Afsluitende acties
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function afsl_script {
+
+    success "Opdracht $PROGNAME is succesvol uitgevoerd."
+}
+
+# ###############################################################################
+# Hoofdlijn
+# ###############################################################################
+
+# init_script
+{
+    init_script
+    controleer_invoer "$@"
+    controleer_gebruiker $RUN_AS_SUPERUSER
+}
+
+# verwerk
+{
+    verwerk
+}
+
+# afsl_script
+{
+    afsl_script
+}
+
+# Einde script

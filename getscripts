@@ -1,0 +1,458 @@
+#!/bin/bash
+#############################################################################
+# Bestand:  getscripts                                                      #
+# Doel:     Download scrips.                                                #
+# Gebruik:  Eerste keer in het terminalvenster:                             #
+#           wget karelzimmer.nl/s;. s                                       #
+#           De s wordt aan de serverkant herleid naar getscripts.           #
+#           Na een keer afmelden en weer aanmelden in het terminalvenster:  #
+#           getscripts [OPTIES]                                             #
+#           Gebruik optie --usage of --help voor meer informatie.           #
+#           Dit script wordt ook gebruikt bij het installeren van Linux.    #
+# Gebruikt: internet's script-common.sh (algemene variabelen en functies)   #
+#           backup.desktop              (starter Back-up maken)             #
+#           start-installatie.desktop   (starter Start installatie)         #
+# Auteur:   Karel Zimmer (http://karelzimmer.nl, info@karelzimmer.nl)       #
+# ------------------------------------------------------------------------- #
+# Auteursrecht © 2009-2016 Karel Zimmer.                                    #
+#                                                                           #
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen #
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals          #
+# gepubliceerd door de Free Software Foundation, onder versie 3 van de      #
+# Licentie of (naar uw keuze) elke latere versie.                           #
+#                                                                           #
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar   #
+# ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die           #
+# GEBRUIKELIJK ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK   #
+# DOEL.  Zie de GNU Algemene Publieke Licentie voor meer details.           #
+#                                                                           #
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben         #
+# ontvangen samen met dit programma. Als dat niet het geval is, zie         #
+# http://www.gnu.org/licenses/.                                             #
+# ------------------------------------------------------------------------- #
+# Versies:  1.0.0   2009-05-11  Eerste versie.                              #
+#           2.0.0   2009-05-13  Bestanden ophalen van website "as-is".      #
+#           3.0.0   2010-01-31  Meer berichten naar de gebruiker.           #
+#           4.0.0   2011-01-28  Ophalen shellarchiefbestand versneld.       #
+#           5.0.0   2013-03-03  Controle op md5sum toegevoegd.              #
+#           6.0.0   2014-07-11  Gebruik van logboek etc. verwijderd.        #
+#           7.0.0   2014-11-23  Meer informatie tonen, logboek toegevoegd.  #
+#           8.0.0   2015-01-28  Aanpassingen na gewijzigde deploy.          #
+#           9.0.0   2015-07-08  Hernoemd (-/- .sh) en scripts naar ~/bin.   #
+#          10.0.0   2015-07-28  Script kunnen sourcen (en uitvoeren).       #
+#          11.0.0   2015-09-19  Starters plaatsen.                          #
+#          12.0.0   2015-12-08  Conditioneel ~/scripts vullen.              #
+#          13.0.0   2016-05-20  Van eigen log naar system log en systemd    #
+#                               journal.                                    #
+#############################################################################
+readonly VERSION_NUMBER=13.1.1
+readonly RELEASE_DATE=2016-06-05
+
+#############################################################################
+# Instellingen                                                              #
+#############################################################################
+
+#---------------------------------------------------------------------------#
+# Algemene instellingen                                                     #
+# ------------------------------------------------------------------------- #
+# Lees de algemene variabelen en functies in.                               #
+# In dit script anders dan in reguliere scripts!                            #
+# ------------------------------------------------------------------------- #
+readonly SOURCE=http://karelzimmer.nl/data/linux/script-common.sh
+                                        # Algemeen scriptbestand (bron)
+readonly TARGET=/tmp/script-common.sh   # Algemeen scriptbestand (doel)
+wget --quiet --output-document=$TARGET $SOURCE ||
+    {
+        echo "Downloaden bestand $SOURCE is mislukt." >&2
+        [[ $0 = 'bash' ]] && return 1 || exit 1
+    }
+source $TARGET getscripts &> /dev/null ||
+    {
+        echo 'Het algemeen scriptbestand (script-common.sh) is niet gevonden'
+        echo "of bevat fouten.  Is 'wget karelzimmer.nl/s;. s' uitgevoerd?"
+        echo 'Zie voor informatie http://karelzimmer.nl en klik op LEESMIJ.'
+        [[ $0 = 'bash' ]] && return 1 || exit 1
+    }
+rm "$TARGET"
+source ${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs
+
+#---------------------------------------------------------------------------#
+# Globale constanten                                                        #
+#---------------------------------------------------------------------------#
+# Algemeen ------------------------------------------------------------------
+readonly SCRIPT_NEEDS_SUDO=false        # Geen beheerdersrechten nodig
+readonly FIRST_COPYRIGHTYEAR=2009       # Eerste auteursrechtjaar
+readonly OPTION_NEEDS_ARG=false         # Geen optie met een verplicht argum.
+readonly OPTIONS_HELP=$(cat << OPTIONS_HELP
+OPTIONS_HELP
+)                                       # Extra hulp-opties
+readonly OPTIONS_USAGE=$(cat << OPTIONS_USAGE
+OPTIONS_USAGE
+)                                       # Extra gebruiks-opties
+
+# Specifiek -----------------------------------------------------------------
+readonly REDIRECTFILE=s                 # Redirectnaam naar dit script
+readonly SOURCEDIR=$(dirname "$SOURCE") # Bronmap (op internet)
+readonly TARFILE=scripts.tar.gz         # Shellarchiefbestand
+readonly MD5SUMSFILE=MD5SUMS            # Controlebestand
+readonly TARGETDIR_ALT=$HOME/scripts    # Extra doelmap als niet op ontwikkel
+                                        # machine en gebruiker is karel.
+
+# Foutcodes -----------------------------------------------------------------
+
+#---------------------------------------------------------------------------#
+# Globale variabelen                                                        #
+#---------------------------------------------------------------------------#
+# Array, integer ------------------------------------------------------------
+
+# Boolean -------------------------------------------------------------------
+
+# Overig --------------------------------------------------------------------
+
+#############################################################################
+# Functies                                                                  #
+#############################################################################
+
+#-Functie-------------------------------------------------------------------#
+# Naam: toon_hulp                                                           #
+# Doel: Uitleg werking script.                                              #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_hulp {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    toon_gebruik_sc $OPTION_USAGE
+    cat << HULP
+
+Download scrips.
+
+$OPTIONS_HELP_SC$OPTIONS_HELP
+
+Download scripts en overige bestanden van het internet.
+
+De bestanden worden gecontroleerd op juistheid en geplaatst in $BINDIR.
+Onder bepaalde voorwaarden worden de bestanden ook geplaatst in
+$HOME/scripts.
+
+De scripts worden uitvoerbaar gemaakt, en omdat deze in $BINDIR staan,
+zijn deze direct uit te voeren.
+Bijvoorbeeld:
+start-installatie  - om de installatiescripts uit te voeren, of
+backup             - om een back-up te maken, en
+restore            - om een back-up terug te zetten.
+
+Er worden ook zogenaamde starters geplaatst op het Bureaublad en in de
+Persoonlijke map.
+Klik op een starter om dat programma te starten.
+
+Deze starters worden ook geplaatst in de gebruikersomgeving om de programma's
+te kunnen starten via de Snelzoeker.
+Klik op het Ubuntu-logo linksboven in de Starter of druk éénmaal (kort) op de
+Super-toets¹.
+Dit open de Snelzoeker, zoek het programma en klik erop.
+Sleep het programma naar de gewenste plek in de Starter of klik rechts op het
+programma en kies In starter vastzetten.
+
+¹ De Super-toets is de Windows-toets of Apple-toets (druk lang voor een
+  overzicht van de Sneltoetsen).
+
+$PART_OF_INSTALL_HELPTEXT
+HULP
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: controleer_invoer                                                   #
+# Doel: Initiële controles en/of acties.                                    #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function controleer_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    #-----------------------------------------------------------------------#
+    # Maak binmap aan.                                                      #
+    #-----------------------------------------------------------------------#
+    mkdir       --parents   \
+                --verbose   \
+                "$BINDIR"   |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'maak binmap aan'               \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Lees profiel in, zodat ~/bin opgenomen wordt in $PATH als dit         #
+    # <script> wordt gesourced (. <script> of source <script>).             #
+    # Dit profiel wordt standaard ingelezen bij het aanmelden.              #
+    #-----------------------------------------------------------------------#
+    source  $HOME/.profile &> /dev/null
+    verwerk_rc "$PROGNAME:$FUNCNAME:$LINENO"    \
+                'lees profiel in'               \
+                $?
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: toon_invoer                                                         #
+# Doel: Toon wat het script gaat doen.                                      #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    tput clear
+    info "$HEADER"
+    info
+    info "Bronmap: $SOURCEDIR (op internet)"
+    info "Doelmap: $BINDIR"
+    [[ $HOSTNAME != 'PC06' && $USER = 'karel' ]] &&
+    info "         $TARGETDIR_ALT"
+    info
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: verwerk_invoer                                                      #
+# Doel: Download het shell-archief, pak deze uit, controleer de bestanden,  #
+#       wijzig file mode bits, vul ~/scripts, en kopieer de starters.       #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function verwerk_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    local starter=''
+
+    #-----------------------------------------------------------------------#
+    # Ga naar de binmap.                                                    #
+    #-----------------------------------------------------------------------#
+    cd "$BINDIR"
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'ga naar binmap'                \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Download het scriptsarchief.                                          #
+    #-----------------------------------------------------------------------#
+    info 'Download scriptsarchief...'
+    wget        --verbose                       \
+                --output-document="$TARFILE"    \
+                "$SOURCEDIR/$TARFILE"           |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'download scriptsarchief'       \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Pak het scriptsarchief uit.                                           #
+    #-----------------------------------------------------------------------#
+    info 'Uitpakken scriptsarchief...'
+    tar         --extract   \
+                --verbose   \
+                --file      \
+                "$TARFILE"  |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'pak scriptsarchief uit'        \
+                $?
+    rm          --verbose   \
+                "$TARFILE"  |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Controleer het uitgepakt scriptsarchief met md5sum.                   #
+    #-----------------------------------------------------------------------#
+    info 'Controleer bestanden...'
+    md5sum      --check         \
+                --strict        \
+                "$MD5SUMSFILE"  |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"       \
+                'controleer uitgepakte bestanden'   \
+                $?
+    rm          --verbose       \
+                "$MD5SUMSFILE"  |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Maak de bestanden aanpasbaar, leesbaar, en uitvoerbaar.               #
+    #-----------------------------------------------------------------------#
+    info 'Wijzig rechten...'
+    chmod       --verbose       \
+                u=rwx,g=r,o=r   \
+                *               |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'wijzig rechten (1 van 3)'      \
+                $?
+
+    chmod       --verbose       \
+                u-x             \
+                *.*             |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'wijzig rechten (2 van 3)'      \
+                $?
+
+    chmod       --verbose       \
+                u+x             \
+                *.desktop       |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'wijzig rechten (3 van 3)'      \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Conditioneel ~/scripts vullen. Schrijf alles ongewijzigd door.        #
+    #-----------------------------------------------------------------------#
+    if [[ $HOSTNAME != 'PC06' && $USER = 'karel' ]]; then
+        mkdir       --verbose       \
+                    $TARGETDIR_ALT  |& $LOGCMD
+        verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                    'vul ~/scripts (1 van 2)'       \
+                    $?
+        cp          --verbose       \
+                    *               \
+                    $TARGETDIR_ALT  |& $LOGCMD
+        verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                    'vul ~/scripts (2 van 2)'       \
+                    $?
+    fi
+
+    #-----------------------------------------------------------------------#
+    # Wijzig de installatie- en instellingsbestanden voor gebruik.          #
+    #-----------------------------------------------------------------------#
+    info 'Wijzig installatie- en instellingsbestanden...'
+    sed         --in-place                          \
+                s"|/home/karel/scripts/|$BINDIR/|g" \
+                install-*.sh                        \
+                setup-*.sh                          |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"               \
+                'wijzig installatie/instellingsbestanden'   \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Wijzig de starters voor gebruik.                                      #
+    #-----------------------------------------------------------------------#
+    info 'Wijzig starters...'
+    sed         --in-place                          \
+                s"|/home/karel/scripts/|$BINDIR/|g" \
+                *.desktop                           |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'wijzig starters'               \
+                $?
+
+    #-----------------------------------------------------------------------#
+    # Starters plaatsen.                                                    #
+    #-----------------------------------------------------------------------#
+    info 'Plaats starters...'
+
+    # Zorg dat de starters gevonden kunnen worden met de Snelzoeker.
+    cp          --verbose                           \
+                $BINDIR/start-installatie.desktop   \
+                $BINDIR/backup.desktop              \
+                $HOME/.local/share/applications     |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"               \
+                'maak starters bruikbaar met de Snelzoeker' \
+                $?
+
+    # Starter naar het Bureaublad.
+    ln          --verbose                           \
+                --force                             \
+                --symbolic                          \
+                $BINDIR/start-installatie.desktop   \
+                $XDG_DESKTOP_DIR                    |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'plaats starter op Bureaublad'  \
+                $?
+
+    # Starters naar de Persoonlijke map.
+    ln          --verbose                           \
+                --force                             \
+                --symbolic                          \
+                $BINDIR/backup.desktop              \
+                $BINDIR/start-installatie.desktop   \
+                $HOME                               |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"           \
+                'plaats starter in Persoonlijke map'    \
+                $?
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: toon_afsluiten                                                      #
+# Doel: Afsluitende meldingen en/of acties.                                 #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_afsluiten {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    info 'Opruimen...'
+    rm      --verbose               \
+            --force                 \
+            --recursive             \
+            "$BINDIR/log"           \
+            "$HOME/$SCRIPTS/log"    |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Verwijder overbodige bestanden.                                       #
+    # --------------------------------------------------------------------- #
+    # Als 'wget karelzimmer.nl/s;. s' met sudo of als root wordt uitgevoerd,#
+    # wordt bestand 's' opgeslagen als root en vervolgens gesourced (. s).  #
+    # Als dit script vervolgens bestand 's' gaat verwijderen komt de vraag  #
+    # "rm: normaal bestand ‘s’ (schrijfbeveiligd) verwijderen?".            #
+    # De opdracht 'yes' voor 'rm' zorgt er voor dat deze vraag met yes      #
+    # wordt beantwoord en het script doorloopt.                             #
+    #-----------------------------------------------------------------------#
+    yes                             |
+    rm  --verbose                   \
+        "$OLDPWD/$REDIRECTFILE"     \
+        "$OLDPWD/$REDIRECTFILE".?   \
+        "$OLDPWD/$REDIRECTFILE".??  |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Afsluitende tekst hoe de scripts zijn uit te voeren.                  #
+    #-----------------------------------------------------------------------#
+    info 'Gereed.'
+    info
+    success "Klik op Start installatie op het Bureaublad (of in de \
+Persoonlijke map)."
+    info
+    info 'Ga voor meer informatie naar de site http://karelzimmer.nl en'
+    info "kijk naar Installatiechecklist algemeen, en Installatiechecklist \
+$HOSTNAME."
+    # Niet meteen exit als gesourced.
+    [[ $0 = bash ]] &&
+        {
+            info
+            read -p "Druk op de Enter-toets om dit venster te sluiten \
+(Enter) "
+        }
+
+    return 0
+}
+
+#############################################################################
+# Hoofdlijn                                                                 #
+#############################################################################
+# init_script
+{
+    controleer_invoer_sc    "$@"
+
+    # Als gesourced, toon resultaat script-common's verwerk invoer en stop.
+    [[ $0 = 'bash' && -n $@ ]] && return 0
+
+    controleer_gebruiker_sc $SCRIPT_NEEDS_SUDO
+    controleer_invoer
+    toon_invoer
+}
+
+# verwerk
+{
+#   toon_gestart_sc
+    verwerk_invoer
+#   toon_gestopt_sc
+}
+
+# afsl_script
+{
+    toon_afsluiten
+#   toon_afsluiten_sc
+    exit 0
+}
+
+# Einde script.

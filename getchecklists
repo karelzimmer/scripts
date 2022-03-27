@@ -1,0 +1,303 @@
+#!/bin/bash
+#############################################################################
+# Bestand:  getchecklists                                                   #
+# Doel:     Download checklists.                                            #
+# Gebruik:  Eerste keer in het terminalvenster:                             #
+#           wget karelzimmer.nl/c;. c                                       #
+#           De c wordt aan de serverkant herleid naar getchecklists.        #
+#           Na een keer afmelden en weer aanmelden in het terminalvenster:  #
+#           getchecklists [OPTIES]                                          #
+#           Gebruik optie --usage of --help voor meer informatie.           #
+# Gebruikt: internet's script-common.sh (algemene variabelen en functies)   #
+# Auteur:   Karel Zimmer (http://karelzimmer.nl, info@karelzimmer.nl)       #
+# ------------------------------------------------------------------------- #
+# Auteursrecht © 2015-2016 Karel Zimmer.                                    #
+#                                                                           #
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen #
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals          #
+# gepubliceerd door de Free Software Foundation, onder versie 3 van de      #
+# Licentie of (naar uw keuze) elke latere versie.                           #
+#                                                                           #
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar   #
+# ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die           #
+# GEBRUIKELIJK ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK   #
+# DOEL.  Zie de GNU Algemene Publieke Licentie voor meer details.           #
+#                                                                           #
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben         #
+# ontvangen samen met dit programma. Als dat niet het geval is, zie         #
+# http://www.gnu.org/licenses/.                                             #
+# ------------------------------------------------------------------------- #
+# Versies:  1.1.0   2015-01-29  Eerste versie.                              #
+#           2.0.0   2015-07-08  Hernoemd (-/- .sh).                         #
+#           3.0.0   2015-07-28  Script kunnen sourcen (en uitvoeren).       #
+#           4.0.0   2016-05-20  Van eigen log naar system log en systemd    #
+#                               journal.                                    #
+#############################################################################
+readonly VERSION_NUMBER=4.1.1
+readonly RELEASE_DATE=2016-08-09
+
+#############################################################################
+# Instellingen                                                              #
+#############################################################################
+
+#---------------------------------------------------------------------------#
+# Algemene instellingen                                                     #
+# In dit script anders dan in reguliere scripts!                            #
+#---------------------------------------------------------------------------#
+readonly SOURCE=http://karelzimmer.nl/data/linux/script-common.sh
+                                        # Algemeen scriptbestand (bron)
+readonly TARGET=/tmp/script-common.sh   # Algemeen scriptbestand (doel)
+wget --quiet --output-document=$TARGET $SOURCE ||
+    {
+        echo "Downloaden bestand $SOURCE is mislukt." >&2
+        [[ $0 = 'bash' ]] && return 1 || exit 1
+    }
+source $TARGET getchecklists &> /dev/null ||
+    {
+        echo 'Het algemeen scriptbestand (script-common.sh) is niet gevonden'
+        echo "of bevat fouten.  Is 'wget karelzimmer.nl/s;. s' uitgevoerd?"
+        echo 'Zie voor informatie http://karelzimmer.nl en klik op LEESMIJ.'
+        [[ $0 = 'bash' ]] && return 1 || exit 1
+    }
+rm "$TARGET"
+source ${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs
+
+#---------------------------------------------------------------------------#
+# Globale constanten                                                        #
+#---------------------------------------------------------------------------#
+# Algemeen ------------------------------------------------------------------
+readonly SCRIPT_NEEDS_SUDO=false        # Geen beheerdersrechten nodig
+readonly FIRST_COPYRIGHTYEAR=2015       # Eerste auteursrechtjaar
+readonly OPTION_NEEDS_ARG=false         # Geen optie met een verplicht argum.
+readonly OPTIONS_HELP=$(cat << OPTIONS_HELP
+OPTIONS_HELP
+)                                       # Extra hulp-opties
+readonly OPTIONS_USAGE=$(cat << OPTIONS_USAGE
+OPTIONS_USAGE
+)                                       # Extra gebruiks-opties
+
+# Specifiek -----------------------------------------------------------------
+readonly REDIRECTFILE=c                 # Redirectnaam naar dit script
+readonly SOURCEDIR=$(dirname "$SOURCE") # Bronmap (op internet)
+readonly TARFILE=checklists.tar.gz      # Checklistarchiefbestand
+readonly MD5SUMSFILE=MD5SUMS            # Controlebestand
+readonly TARGETDIR_ALT=/tmp/Checklists  # Doelmap als op ontwikkelmachine
+
+# Foutcodes -----------------------------------------------------------------
+
+#---------------------------------------------------------------------------#
+# Globale variabelen                                                        #
+#---------------------------------------------------------------------------#
+# Array, integer ------------------------------------------------------------
+
+# Boolean -------------------------------------------------------------------
+
+# Overig --------------------------------------------------------------------
+declare TARGETDIR=$XDG_DOCUMENTS_DIR/Checklists
+                                        # Doelmap
+
+#############################################################################
+# Functies                                                                  #
+#############################################################################
+
+#-Functie-------------------------------------------------------------------#
+# Naam: toon_hulp                                                           #
+# Doel: Uitleg werking script.                                              #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_hulp {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    toon_gebruik_sc $OPTION_USAGE
+    cat << HULP
+
+Download checklists.
+
+$OPTIONS_HELP_SC$OPTIONS_HELP
+
+Download checklists, overige bestanden, en pdf-versie van alle scripts,
+checklists, en overige bestanden van het internet.
+
+De bestanden worden gecontroleerd op juistheid en geplaatst in
+$TARGETDIR, op de ontwikkelmachine PC06 in $TARGETDIR_ALT.
+HULP
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: controleer_invoer                                                   #
+# Doel: Initiële controles en/of acties.                                    #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function controleer_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    #-----------------------------------------------------------------------#
+    # Bij ontwikkelmachine checklists naar alternatieve doelmap.            #
+    #-----------------------------------------------------------------------#
+    [[ $HOSTNAME = 'PC06' ]] && TARGETDIR=$TARGETDIR_ALT
+
+    #-----------------------------------------------------------------------#
+    # Maak doelmap aan.                                                     #
+    #-----------------------------------------------------------------------#
+    mkdir       --parents       \
+                "$TARGETDIR"    |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'maak doelmap aan'              \
+                ${PIPESTATUS[0]}
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: toon_invoer                                                         #
+# Doel: Toon wat het script gaat doen.                                      #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    tput clear
+    info "$HEADER"
+    info
+    info "Bronmap: $SOURCEDIR (op internet)"
+    info "Doelmap: $TARGETDIR"
+    info
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: verwerk_invoer                                                      #
+# Doel: Download het checklist-archief, pak deze uit, en controleer de      #
+#       bestanden.                                                          #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function verwerk_invoer {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    #-----------------------------------------------------------------------#
+    # Ga naar de doelmap.                                                   #
+    #-----------------------------------------------------------------------#
+    cd  "$TARGETDIR"
+    verwerk_rc "$PROGNAME:$FUNCNAME:$LINENO" 'ga naar doelmap' $?
+
+    #-----------------------------------------------------------------------#
+    # Download het checklistsarchief.                                       #
+    #-----------------------------------------------------------------------#
+    info 'Download checklistsarchief...'
+    wget        --verbose                       \
+                --output-document="$TARFILE"    \
+                "$SOURCEDIR/$TARFILE"           |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'download checklistsarchief'    \
+                ${PIPESTATUS[0]}
+
+    #-----------------------------------------------------------------------#
+    # Pak het checklistsarchief uit.                                        #
+    #-----------------------------------------------------------------------#
+    info 'Uitpakken checklistsarchief...'
+    tar         --extract   \
+                --verbose   \
+                --file      \
+                "$TARFILE"  |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"   \
+                'pak checklistsarchief uit'     \
+                ${PIPESTATUS[0]}
+    rm          --verbose   \
+                "$TARFILE"  |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Controleer het uitgepakt checklistsarchief met md5sum.                #
+    #-----------------------------------------------------------------------#
+    info 'Controleer bestanden...'
+    md5sum      --check         \
+                --strict        \
+                "$MD5SUMSFILE"  |& $LOGCMD
+    verwerk_rc  "$PROGNAME:$FUNCNAME:$LINENO"       \
+                'controleer uitgepakte bestanden'   \
+                ${PIPESTATUS[0]}
+    rm          --verbose       \
+                "$MD5SUMSFILE"  |& $LOGCMD
+
+    return 0
+}
+
+#---------------------------------------------------------------------------#
+# Naam: toon_afsluiten                                                      #
+# Doel: Afsluitende meldingen en/of acties.                                 #
+# Arg.: Geen argumenten.                                                    #
+#---------------------------------------------------------------------------#
+function toon_afsluiten {
+    log "$PROGNAME:$FUNCNAME:$LINENO"
+
+    #-----------------------------------------------------------------------#
+    # Verwijder overbodige bestanden.                                       #
+    # --------------------------------------------------------------------- #
+    # Als 'wget karelzimmer.nl/c;. c' met sudo of als root wordt uitgevoerd,#
+    # wordt bestand 'c' opgeslagen als root en vervolgens gesourced (. c).  #
+    # Als dit script vervolgens bestand 'c' gaat verwijderen komt de vraag  #
+    # "rm: normaal bestand ‘c’ (schrijfbeveiligd) verwijderen?".            #
+    # De opdracht 'yes' voor 'rm' zorgt er voor dat deze vraag met yes      #
+    # wordt beantwoord en het script doorloopt.                             #
+    #-----------------------------------------------------------------------#
+    info 'Opruimen...'
+    yes                             |
+    rm  --verbose                   \
+        "$OLDPWD/$REDIRECTFILE"     \
+        "$OLDPWD/$REDIRECTFILE".?   \
+        "$OLDPWD/$REDIRECTFILE".??  |& $LOGCMD
+
+    #-----------------------------------------------------------------------#
+    # Afsluitende tekst waar de bestanden zijn te vinden.                   #
+    #-----------------------------------------------------------------------#
+    info 'Gereed.'
+    info
+    local txt="De bestanden zijn geplaatst in $TARGETDIR."
+    [[ $HOSTNAME = 'PC06' ]] && warning "$txt" || success "$txt"
+    info
+    info 'Ga voor meer informatie naar de site http://karelzimmer.nl en'
+    info "kijk naar Installatiechecklist algemeen, en \
+Installatiechecklist $HOSTNAME."
+    # Niet meteen exit als gesourced.
+    [[ $0 = bash ]] &&
+        {
+            info
+            read -p "Druk op de Enter-toets om dit venster te sluiten \
+(Enter) "
+        }
+
+    return 0
+}
+
+#############################################################################
+# Hoofdlijn                                                                 #
+#############################################################################
+# init_script
+{
+    controleer_invoer_sc    "$@"
+
+    # Als gesourced, toon resultaat script-common's verwerk invoer en stop.
+    [[ $0 = 'bash' && -n $@ ]] && return 0
+
+    controleer_gebruiker_sc $SCRIPT_NEEDS_SUDO
+    controleer_invoer
+    toon_invoer
+}
+
+# verwerk
+{
+#   toon_gestart_sc
+    verwerk_invoer
+#   toon_gestopt_sc
+}
+
+# afsl_script
+{
+    toon_afsluiten
+#   toon_afsluiten_sc
+    exit 0
+}
+
+# Einde script.

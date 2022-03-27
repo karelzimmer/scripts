@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Back-up van Persoonlijke map maken.
+
+source=$HOME
+target=$(ls --directory /media/"$USER"/* 2> /dev/null)
+if [[ -z $target || $(echo "$target" | wc --lines) -gt 1 ]]; then
+    echo 'Sluit één USB-harddisk aan.'
+    exit 1
+fi
+exclude=$(mktemp -t 'backup-XXXXXXXXXX')
+rc=0
+
+# Backup solution Déjà Dup exclude these files by default.
+cat << EOF > "$exclude"
+.adobe/Flash_Player/AssetCache
+.cache
+.ccache
+.git
+.gvfs
+.Private
+.recent-applications.xbel
+.recently-used.xbel
+snap/*/*/.cache
+.steam/root
+.thumbnails
+.var/app/*/cache
+.xsession-errors
+EOF
+
+# LET OP: --delete-excluded IMPLICEERT --delete
+# (bestanden verwijderd uit source worden ook verwijderd uit target)
+rsync   --archive                           \
+        --verbose                           \
+        --human-readable                    \
+        --delete                            \
+        --exclude-from="$exclude"           \
+        --delete-excluded                   \
+        "$source"/                          \
+        "$target/backup-$HOSTNAME-$USER"    || rc=$?
+
+rm "$exclude"
+
+exit $rc

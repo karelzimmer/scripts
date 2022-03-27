@@ -1,0 +1,550 @@
+#!/bin/bash
+# ###############################################################################
+# Bestand:  wallpapers
+# Doel:     Voeg werkbladachtergronden toe
+# Gebruik:  1. Met starter Restore (aanbevolen)
+#           2. In het terminalvenster:
+#              wallpapers [OPTIE...]
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# -------------------------------------------------------------------------------
+# Auteursrecht © 2013-2019 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen onder
+# de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd door de
+# Free Software Foundation, onder versie 3 van de Licentie of (naar uw keuze)
+# elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar
+# ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die
+# GEBRUIKELIJK ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# -------------------------------------------------------------------------------
+# Versies:  1.0.0   2013-01-10  Eerste versie
+#           2.0.0   2014-02-08  Toon aantal afbeeldingen als voortgang
+#           3.0.0   2014-04-20  Verwerking Lubuntu toegevoegd
+#           4.0.0   2015-01-10  Verwerking Linux Mint toegevoegd
+#           5.0.0   2015-07-08  Hernoemd (-/- .sh)
+#           7.0.0   2016-05-20  Van eigen log naar system log en systemd journal
+#           8.0.0   2016-07-06  Verborgen optie starter toegevoegd
+#           9.0.0   2017-07-30  Verwerking Xubuntu toegevoegd
+#          10.0.0   2017-10-03  Verborgen optie man toegevoegd
+#          11.0.0   2018-05-19  Optie gui toegevoegd (GUIfying scripts)
+#          12.0.0   2018-07-28  Gebruik mappen volgens de Linux FHS standaard
+# ###############################################################################
+declare VERSION_NUMBER=12.2.6
+declare RELEASE_DATE=2018-11-30
+
+# ###############################################################################
+# Instellingen
+# ###############################################################################
+if [[ $0 == *bash ]]; then
+    text="Niet uitvoeren met opdracht source."
+    zenity  --error         \
+            --width=240     \
+            --height=100    \
+            --text="$text"  \
+            2> /dev/null    || echo "$text" >&2
+    return 1
+fi
+
+# -------------------------------------------------------------------------------
+# Algemene instellingen
+# -------------------------------------------------------------------------------
+readonly FIRST_COPYRIGHTYEAR=2013
+readonly PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+readonly PROGNAME=$(basename "${BASH_SOURCE[0]}")
+readonly RUN_AS_SUPERUSER=true
+# shellcheck source=./common.sh
+if ! source "$PROGDIR"/common.sh 2> /dev/null; then
+    text="Bestand common.sh is niet gevonden of bevat fouten; voer uit:\nwget \
+karelzimmer.nl/s;bash s"
+    zenity  --error         \
+            --width=240     \
+            --height=100    \
+            --text="$text"  \
+            2> /dev/null    || echo -e "$text" >&2
+    exit 1
+fi
+
+# -------------------------------------------------------------------------------
+# Globale constanten
+# -------------------------------------------------------------------------------
+readonly SOURCEURL=https://karelzimmer.nl/downloads/$PROGNAME
+readonly TARFILE=wallpapers.tar
+
+readonly HASHPROG=sha256sum
+readonly HASHFILE=$TARFILE.$HASHPROG
+
+readonly TARGETDIR_A=/opt/$PROGNAME
+readonly TARGETDIR_L=/usr/share/lubuntu/wallpapers
+readonly TARGETDIR_X=/usr/share/xfce4/backdrops
+
+readonly CONFIGDIR=/usr/share/gnome-background-properties
+readonly CONFIGFILE=opt-$PROGNAME.xml
+readonly CONFIG=$CONFIGDIR/$CONFIGFILE
+
+readonly WAIT=1s
+
+readonly OPTS_SHORT=$OPTS_SHORT_COMMON'g'
+readonly OPTS_LONG=$OPTS_LONG_COMMON',gui'
+readonly OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
+
+readonly USAGE=$(cat << USAGE
+$PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
+
+Typ '$PROGNAME --help' voor meer informatie.
+USAGE
+)
+readonly HELP=$(cat << HELP
+$PROGNAME [OPTIE...]
+
+Voeg werkbladachtergronden toe.
+
+Opties:
+  -g --gui            Start in grafische modus
+$OPTS_HELP_COMMON
+
+Typ 'man $PROGNAME' voor meer informatie.
+HELP
+)
+readonly MAN=$(cat << MAN
+$MAN_HEADER
+
+${B}NAAM${N}
+    ${B}$PROGNAME${N} - Voeg werkbladachtergronden toe
+
+${B}SAMENVATTING${N}
+    ${B}$PROGNAME${N} [OPTIE...]
+
+${B}BESCHRIJVING${N}
+    Opdracht ${B}$PROGNAME${N} voegt werkbladachtergronden toe.
+
+    De volgende acties worden uitgevoerd:
+     - download het afbeeldingenarchief en controlebestand,
+     - controleer het afbeeldingenarchief,
+     - pak de afbeeldingen uit,
+     - maak het configuratiebestand aan.
+
+    De toegevoegde afbeeldingen zijn zo als werkbladachtergronden te \
+gebruiken voor alle gebruikers.
+
+    Het configuratiebestand is een XML-bestand in '$CONFIGDIR'.  Er wordt daar \
+een extra XML-bestand
+    toegevoegd, 'opt-$PROGNAME.xml', die verwijst naar afbeeldingen in \
+'$TARGETDIR_A'.
+
+    Standaard staan de werkbladachtergronden in map '/usr/share/backgrounds'.  \
+Bij Lubuntu staan de werkbladachtergronden in
+    '$TARGETDIR_L', bij Xubuntu in '$TARGETDIR_X' en is geen \
+configuratiebestand nodig.
+
+${B}OPTIES${N}
+    ${B}-g${N}, ${B}--gui${N}
+        Start in grafische modus (gui=graphical user interface).
+
+$OPTS_MAN_COMMON
+
+${B}STOPSTATUS${N}
+    Bij success wordt afsluitwaarde $E_OK teruggegeven; anders wordt een \
+niet-nul foutcode teruggegeven.
+
+${B}BESTANDEN${N}
+    $PROGDIR/common.sh
+        Algemene variabelen en functies voor bash scripts.
+
+    /usr/share/backgrounds/*
+        Standaard werkbladachtergronden.
+
+    $CONFIG
+        Configuratiebestand (XML).
+
+    $TARGETDIR_A/*
+        Werkbladachtergronden. Niet voor Lubuntu en Xubuntu.
+
+    $TARGETDIR_L/*
+        Werkbladachtergronden. Voor Lubuntu.
+
+    $TARGETDIR_X/*
+        Werkbladachtergronden. Voor Xubuntu.
+
+${B}NOTITIES${N}
+    1. Checklist installatie
+       https://karelzimmer.nl
+
+${B}AUTEUR${N}
+    $AUTHOR
+
+${B}AUTEURSRECHT${N}
+$(
+    echo "$COPYRIGHT"           |
+    nl  --number-width=4        \
+        --number-separator=''   \
+        --body-numbering=n
+)
+
+${B}ZIE OOK${N}
+    ${B}starthere${N}(1)
+
+$MAN_FOOTER
+MAN
+)
+
+# -------------------------------------------------------------------------------
+# Globale variabelen
+# -------------------------------------------------------------------------------
+
+# Array, integer
+
+# Boolean
+
+# Tekst
+declare TARGETDIR=''
+
+# ###############################################################################
+# Functies
+# ###############################################################################
+
+# -------------------------------------------------------------------------------
+# Controleer de invoer van het script en verwerk deze waar mogelijk
+# Globalen:
+#   Geen
+# Argumenten:
+#   Opties, optie argumenten, non-optie argumenten
+# -------------------------------------------------------------------------------
+function controleer_invoer {
+
+    local -i getopt_rc=0
+    local parm_error=false
+
+    # Ontleed (parse) opties en argumenten met getopt.
+    set +o errexit
+    PARSED=$(getopt --alternative                   \
+                    --options       "$OPTS_SHORT"   \
+                    --longoptions   "$OPTS_LONG"    \
+                    --name          "$PROGNAME"     \
+                    -- "$@")
+    getopt_rc=$?
+    set -o errexit
+    if [[ $getopt_rc -ne 0 ]]; then
+        echo "$HELPLINE"
+        noabend; exit $E_ERROR
+    fi
+
+    # Gebruik eval om quoting correct te verwerken.
+    eval set -- "$PARSED"
+
+    # Verwerk de opties en optie-argumenten.
+    while true; do
+        case $1 in
+            -d|--debug)
+                debug
+                OPT_DEBUG=true
+                shift
+                ;;
+            -g|--gui)
+                OPT_GUI=true
+                shift
+                ;;
+            -h|--help)
+                OPT_HELP=true
+                shift
+                ;;
+            -u|--usage)
+                OPT_USAGE=true
+                shift
+                ;;
+            -v|--version)
+                OPT_VERSION=true
+                shift
+                ;;
+            --zz-man)
+                # Verborgen optie.
+                OPT_MAN=true
+                shift
+                ;;
+            --zz-tab-compl)
+                # Verborgen optie.
+                echo "$OPTS_TAB_COMPL"
+                noabend; exit $E_OK
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                info "Interne fout bij het afhandelen van optie '$1'."
+                parm_error=true
+                shift
+                ;;
+        esac
+    done
+
+    # Verwerk de non-optie argumenten.
+    if [[ "$*" ]]; then
+        echo "Geen argumenten opgeven."
+        parm_error=true
+    fi
+
+    # Controleer op fouten.
+    if $parm_error; then
+        echo "$HELPLINE"
+        noabend; exit $E_ERROR
+    fi
+
+    # Verwerk de standaardopties.
+    if $OPT_HELP; then
+        verwerk_help
+    elif $OPT_MAN; then
+        verwerk_man
+    elif $OPT_USAGE; then
+        verwerk_usage
+    elif $OPT_VERSION; then
+        verwerk_version
+    fi
+    if ! command -v zenity &> /dev/null; then
+        OPT_GUI=false
+        log "Programma zenity ontbreekt; grafische modus uitgezet."
+    fi
+
+    # Controleer op welke werkomgeving we draaien.
+    if [[ $DISTID = 'lubuntu' ]]; then
+        TARGETDIR=$TARGETDIR_L
+    elif [[ $DISTID = 'xubuntu' ]]; then
+        TARGETDIR=$TARGETDIR_X
+    else
+        TARGETDIR=$TARGETDIR_A
+    fi
+}
+
+# -------------------------------------------------------------------------------
+# Toon wat het script gaat doen
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function toon_invoer {
+
+    echo "    Opdracht: $PROGNAME
+     Bronmap: $SOURCEURL (op internet)
+     Doelmap: $TARGETDIR"
+    if [[ $DISTID = 'lubuntu' ]]; then
+        echo "Configuratie: N.v.t. voor Lubuntu"
+    elif [[ $DISTID = 'xubuntu' ]]; then
+        echo "Configuratie: N.v.t. voor Xubuntu"
+    else
+        echo "Configuratie: $CONFIG"
+    fi
+}
+
+# -------------------------------------------------------------------------------
+# Download afbeeldingen en voeg deze toe als bureaubladachtergronden
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function verwerk {
+
+    local title="$PROGNAME"
+    local text0='Opdrachten worden verwerkt...'
+    local text1='Maak map aan...'
+    local text2='Download afbeeldingen...'
+    local text3='Genereer configuratiebestand...'
+
+    if $OPT_GUI; then
+        (
+        echo "#$text1"; sleep $WAIT
+        maak_map_aan
+        echo "#$text2"; sleep $WAIT
+        download_afbeeldingen
+        echo "#$text3"; sleep $WAIT
+        genereer_configuratiebestand
+        ) |
+        zenity  --progress          \
+                --pulsate           \
+                --auto-close        \
+                --no-cancel         \
+                --width=600         \
+                --height=50         \
+                --title="$title"    \
+                --text="$text0"     \
+                2> /dev/null
+    else
+        maak_map_aan
+        download_afbeeldingen
+        genereer_configuratiebestand
+        echo 'Klaar.'
+    fi
+
+}
+
+# -------------------------------------------------------------------------------
+# Maak map aan
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function maak_map_aan {
+
+    # Maak bureaubladachtergrondenmap aan.
+    if [[ ! -d $TARGETDIR ]]; then
+        mkdir   --verbose       \
+                "$TARGETDIR"    |& $LOGCMD
+    fi
+
+    # Controleer configuratiemap.
+    if [[ $DISTID != 'lubuntu' && $DISTID != 'xubuntu' && ! -d $CONFIGDIR ]]
+    then
+        echo "Map '$CONFIGDIR' bestaat niet."
+        noabend; exit $E_ERROR
+    fi
+}
+
+# -------------------------------------------------------------------------------
+# Download de afbeeldingen
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function download_afbeeldingen {
+
+    # Ga naar de doelmap.
+    cd "$TARGETDIR" || exit $E_ERROR
+
+    # Download het archief en het controlebestand.
+    echo -e '\nDownload wallpapersarchief...'
+    wget    --output-document="$TARFILE"    \
+            "$SOURCEURL/$TARFILE"
+    wget    --output-document="$HASHFILE"   \
+            "$SOURCEURL/$HASHFILE"
+
+    # Controleer het archief, en verwijder het controlebestand daarna.
+    echo 'Controleer wallpapersarchief...'
+    $HASHPROG   --check     \
+                --strict    \
+                "$HASHFILE" |& $LOGCMD
+    rm  --verbose   \
+        "$HASHFILE" |& $LOGCMD
+
+    # Pak het archief uit, en verwijder het archief daarna.
+    echo 'Uitpakken wallpapersarchief...'
+    tar --extract   \
+        --verbose   \
+        --file      \
+        "$TARFILE"  |& $LOGCMD
+    rm  --verbose   \
+        "$TARFILE"  |& $LOGCMD
+}
+
+# -------------------------------------------------------------------------------
+# Maak configuratiebestand aan
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function genereer_configuratiebestand {
+
+    # N.v.t. voor L/Xubuntu
+    if [[ $DISTID = 'lubuntu' || $DISTID = 'xubuntu' ]]; then
+        return 0
+    fi
+
+    local filename=''
+    local imgbasename=''
+    local imgname=''
+
+    echo 'Aanmaken configuratiebestand...'
+
+    # Kopregels.
+    cat <<EOF > "$CONFIG"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE $PROGNAME SYSTEM "gnome-wp-list.dtd">
+<$PROGNAME>
+EOF
+
+    # Inhoud.
+    for filename in "$TARGETDIR"/*; do
+        # Alleen normale bestanden.
+        if [[ ! -f "$filename" ]]; then
+            continue
+        fi
+        # Verwijder mapnaam.
+        imgname=$(basename "$filename")
+        # Verwijder suffix.
+        imgbasename=${imgname%%\.*}
+
+        echo "  <wallpaper>
+    <name>$imgbasename</name>
+    <filename>$filename</filename>
+    <options>zoom</options>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+    <shade_type>solid</shade_type>
+  </wallpaper>" >> "$CONFIG"
+
+    done
+
+    # Voetregel.
+    echo "</$PROGNAME>" >> "$CONFIG"
+
+    if $OPT_DEBUG; then
+        log "+++ BEGIN +++ Inhoud '$CONFIG' +++"
+        log "$(cat "$CONFIG")"
+        log "+++ EINDE +++ Inhoud '$CONFIG' +++"
+    fi
+}
+
+# -------------------------------------------------------------------------------
+# Afsluitende acties
+# Globalen:
+#   Geen
+# Argumenten:
+#   Geen
+# -------------------------------------------------------------------------------
+function afsl_script {
+
+    text="\nDe toegevoegde afbeeldingen zijn nu te gebruiken
+als werkbladachtergrond (door iedere gebruiker).
+Klik hiervoor rechts op het bureaublad en kies"
+    if [[ $DISTID = 'lubuntu' ]]; then
+        text=$text'\nBureaubladvoorkeuren.'
+    elif [[ $DISTID = 'ubuntu' ]]; then
+        text=$text'\nAchtergrond aanpassen.'
+    else
+        text=$text'\nWerkbladachtergrond wijzigen.'
+    fi
+    info "$text"
+    success "Opdracht $PROGNAME is succesvol uitgevoerd."
+}
+
+# ###############################################################################
+# Hoofdlijn
+# ###############################################################################
+
+# init_script
+{
+    init_script
+    controleer_invoer "$@"
+    controleer_gebruiker $RUN_AS_SUPERUSER
+}
+
+# verwerk
+{
+    toon_invoer
+    verwerk
+}
+
+# afsl_script
+{
+    afsl_script
+}
+
+# Einde script

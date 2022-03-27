@@ -1,0 +1,122 @@
+#!/bin/bash
+# ##############################################################################
+# Bestand:  accu
+# Doel:     Bewaak accustatus
+# Gebruik:  Automatisch uitvoeren na het aanmelden (aanbevolen)
+#      of:  In het terminalvenster:
+#           /opt/kzscripts/bin/accu
+# Auteur:   Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+#           Naar voorbeelden op het internet:
+#           http://malwaretips.com/threads/useful-scripts-for-linux.28133/ en
+#           http://www.pclinuxos.com/forum/index.php?topic=129283.5;wap2
+# ------------------------------------------------------------------------------
+# Auteursrecht (c) 2015-2020 Karel Zimmer.
+#
+# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
+# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
+# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
+# keuze) elke latere versie.
+#
+# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
+# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
+# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
+# Zie de GNU Algemene Publieke Licentie voor meer details.
+#
+# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
+# samen met dit programma. Als dat niet het geval is, zie
+# http://www.gnu.org/licenses/.
+# ##############################################################################
+# REL_NUM=07.01.00
+# REL_DAT=2020-03-15
+# REL_MSG='Van /usr naar /opt'
+
+# ##############################################################################
+# Instellingen
+# ##############################################################################
+readonly PROGNAME=accu
+if [[ $1 ]]; then
+    printf '%s\n' "Gebruik: $PROGNAME"
+    exit 0
+fi
+
+# ------------------------------------------------------------------------------
+# Globale constanten
+# ------------------------------------------------------------------------------
+declare -ir CRITICAL_BATTERY=2
+declare -ir ERROR=1
+declare -ir LOW_BATTERY=20
+readonly ACTION='/sbin/poweroff'
+readonly BATTERY_PATH0='/sys/class/power_supply/BAT0'
+readonly BATTERY_PATH1='/sys/class/power_supply/BAT1'
+readonly CRITBAT_ICON='battery_empty'
+readonly LOWBAT_ICON='battery-caution'
+readonly SLEEP=3m
+readonly TITLE='Accu'
+readonly WAIT_FOR_ACTION=60s
+
+# ------------------------------------------------------------------------------
+# Globale variabelen
+# ------------------------------------------------------------------------------
+declare -i CURRENT_BATTERY=0
+
+# ##############################################################################
+# Functies
+# ##############################################################################
+
+# ##############################################################################
+# Hoofdlijn
+# ##############################################################################
+if [[ -e $BATTERY_PATH0 ]]; then
+    BATTERY_PATH=$BATTERY_PATH0
+else
+    BATTERY_PATH=$BATTERY_PATH1
+fi
+
+while true; do
+    if [[ -e $BATTERY_PATH ]]; then
+
+        BATTERY_ON=$(cat "$BATTERY_PATH/status")
+        CURRENT_BATTERY=$(cat "$BATTERY_PATH/capacity")
+
+        if [[ $BATTERY_ON = 'Discharging' ]]; then
+            if [[ $CURRENT_BATTERY -lt $CRITICAL_BATTERY ]]; then
+                msg="Accu is kritiek - $CURRENT_BATTERY%.  Sluit af in \
+$WAIT_FOR_ACTION sec."
+                notify-send --urgency=critical      \
+                            --icon="$CRITBAT_ICON"  \
+                            "$TITLE" "$msg"
+                if ! canberra-gtk-play --id=dialog-error.oga 2> /dev/null; then
+                    true
+                fi
+                sleep $WAIT_FOR_ACTION
+                $ACTION
+            elif [[ $CURRENT_BATTERY -lt $LOW_BATTERY ]]; then
+                msg="Accu is bijna leeg - $CURRENT_BATTERY%."
+                notify-send --urgency=normal                \
+                            --icon="$LOWBAT_ICON"           \
+                            "$TITLE" "$msg"
+                if ! canberra-gtk-play  --id=dialog-warning \
+                                        --loop=3            \
+                                        --volume=4          \
+                                        2> /dev/null; then
+                    true
+                fi
+            fi
+        fi
+        sleep $SLEEP
+
+    else
+        systemd-cat --identifier="$PROGNAME" --priority=err \
+echo "map '$BATTERY_PATH' bestaat niet
+ik heb de volgende paden geprobeerd:
+$BATTERY_PATH0
+$BATTERY_PATH1
+wijzig script $PROGNAME
+zet achter 'BATTERY_PATH=' het correcte pad
+kijk daarvoor in map $(dirname $BATTERY_PATH)
+of vraag het aan Karel ... :-)"
+        exit $ERROR
+    fi
+done
+
+# Einde script

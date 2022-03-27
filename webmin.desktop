@@ -1,0 +1,28 @@
+# #############################################################################
+# Bestand: webmin.desktop
+# Doel:    Bureaublad-configuratiebestand voor Webmin
+# Gebruik: Door dit bestand te kopiëren naar:
+#          ~/.local/share/applications (per-user), of
+#          /usr/share/applications (system-wide)
+# Auteur:  Karel Zimmer (https://karelzimmer.nl, info@karelzimmer.nl)
+# -----------------------------------------------------------------------------
+# Dit werk valt onder een Creative Commons Naamsvermelding-GelijkDelen 4.0
+# Internationaal licentie (CC BY-SA 4.0).
+# Bezoek http://creativecommons.org/licenses/by-sa/4.0/deed.nl om een kopie te
+# zien van de licentie of stuur een brief naar Creative Commons, PO Box 1866,
+# Mountain View, CA 94042, USA.
+# #############################################################################
+REL_NUM=01.03.01
+REL_DAT=2020-04-11
+REL_MSG='Minder taalregels'
+
+[Desktop Entry]
+Name=Webmin
+Name[nl]=Webmin
+Comment=Web-based admin tool
+Comment[nl]=Web-gebaseerd admin tool
+Exec=google-chrome "http://127.0.0.1:10000"
+Icon=/opt/kzscripts/share/pixmaps/webmin.png
+Type=Application
+
+# Einde bureaubladbestand.
