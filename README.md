@@ -4,9 +4,9 @@ scripts
 EN
 ---
 
-Collection of Ansible, Python, and bash scripts.
+Collection of Ansible, Bash, and Python scripts.
 
 NL
 ---
 
-Verzameling Ansible-, Python-, en bash-scripts.
+Verzameling Ansible-, Bash- en Python-scripts.
