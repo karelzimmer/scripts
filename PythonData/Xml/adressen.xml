@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+De xml-version declaratie hoort bovenaan te staan, VOOR alle lege regels
+of commentaarregels. Zo niet, dan klaagt MSXSL.EXE wel; IntExplorer niet.
+
+IE verwerkt het gerefereerde stylesheet; MSXSL wil stylesheet apart op cmdline.
+C:\>MSXSL source stylesheet -options
+-->
+
+<adressen>
+	<persoon id="1">
+		<naam>Klaas Jansen</naam>
+		<tel>020-5603321</tel>
+	</persoon>
+	<persoon id="2">
+		<naam>Jan Klaassen</naam>
+		<tel>020-5414522</tel>
+	</persoon>
+	<persoon id="3">
+		<naam>Jan Jansen</naam>
+		<tel>020-5368925</tel>
+	</persoon>
+	<persoon id="4">
+		<naam>Klaas Hansen</naam>
+		<tel>020-5673322</tel>
+	</persoon>
+	<persoon id="5">
+		<naam>De Razende Reporter</naam>
+		<vnaam>KlaasJan</vnaam>
+		<anaam>Hendriks</anaam>
+		<tel>020-5673322</tel>
+	</persoon>
+	<leverancier>
+		<naam>Jacobs Medische Armaturen</naam>
+		<tel>034-347283</tel>
+		<persoon id="15">
+			<vnaam>Johan</vnaam>
+			<anaam>Jacobs</anaam>
+			<tel>034-8128121</tel>
+		</persoon>
+	</leverancier>
+	<klant>
+		<naam>Gunters en Meuser</naam>
+		<tel>020-6125656</tel>
+		<persoon id="11">
+			<naam>Wim Gunters</naam>
+			<tel>020-6125699</tel>
+		</persoon>
+	</klant>
+	<klant>
+		<naam>De Vries en Te Winkel</naam>
+		<tel>020-6216565</tel>
+		<persoon id="12">
+			<vnaam>Peter</vnaam>
+			<anaam>De Vries</anaam>
+			<tel>020-6216599</tel>
+		</persoon>
+	</klant>
+	<klant>
+		<naam>De Anjelier</naam>
+		<tel>020-6547788</tel>
+	</klant>
+	<naam>Eimpe Adama</naam>
+	<tel>061-1234567</tel>
+	<naam>Oetse Atsema</naam>
+	<tel>061-7654321</tel>
+	Geen verdere info beschikbaar.
+</adressen>

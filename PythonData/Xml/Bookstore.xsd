@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:ecr:Bookstore" xmlns:tg="urn:ecr:Bookstore" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- 
+	targetNamespace="urn:ecr:Bookstore"
+
+	LET OP: een xsd mag meerdere hfdelem bevatten, maar slechts 1 daarvan mag hfdelem in een xml zijn;
+	in bookstore.xml gebr ik elem bookstore als hfdelem, in Dvds.xml elem dvds, maar mag ook dvd als hfdelem
+	een ref-attrib MOET altijd verwijzen naar een globaal elem (= hfdelem)
+	
+	complexType kan bevatten:
+		simpleContent (restriction/extension), bv attrib bij elem met xsd:string of xsd:double
+		complexContent (restriction/extension), bv sequence toevoegen aan elem met sequence (inheritance)
+		annotation, group, sequence, all, choice
+	
+	Als je in deze xsd eigen globale types of elems definieert, dan bij type/elem-naam NIET prefix 'tg:' gebruiken
+	Als je elders in deze xsd hiernaar verwijst, dan moet je prefix 'tg:' juist WEL gebruiken (kreun)
+	-->
+	<xs:element name="bookstore">
+		<xs:complexType mixed="true">			<!-- mixed="true" -->
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="book">
+					<!-- hier niet type="..", want binnen tag staat complexType of simpleType -->
+					<xs:complexType>
+						<xs:sequence>
+							<!-- vlg prb in NET20: dubbele def van attrib en elem met zelfde naam
+							<xs:element name="genre" minOccurs="0" type="xs:string" />-->
+							<xs:element name="title" type="tg:titleType" />
+							<xs:element name="price" minOccurs="0">
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:double">
+											<xs:attribute name="currency" type="xs:string" />
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="stock" type="xs:int" minOccurs="0" default="1" />
+							<!-- als je elem leeglaat, dan default; bij weglaten niet -->
+							<xs:element name="version" type="xs:float" fixed="1.0" />
+							<xs:element name="author" type="tg:authorType" minOccurs="0" maxOccurs="3" />
+						</xs:sequence>
+						<xs:attribute name="genre" use="required">
+							<!-- use = optional | required | prohibited, default: optional -->
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:enumeration value="computer" />
+									<xs:enumeration value="cultuur" />
+									<xs:enumeration value="filosofie" />
+									<xs:enumeration value="literatuur" />
+									<xs:enumeration value="sport" />
+									<xs:enumeration value="waardeloos" />
+									<xs:enumeration value="wetenschap" />
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="pubdate" type="xs:gYear" />
+						<xs:attribute name="isbn" type="xs:string" />
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="record">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="title" type="xs:string" minOccurs="0" />
+							<xs:element name="artist" type="tg:authorType" maxOccurs="5" />
+							<xs:element name="song" type="tg:songType" maxOccurs="40" />
+						</xs:sequence>
+						<xs:attribute name="id" type="xs:integer" />
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="tg:dvd" />
+				<!-- ref MOET verw naar globaal elem -->
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<!-- einde elem bookstore -->
+
+	<!-- hieronder 2e en 3e hfdelem -->
+	<xs:element name="dvds">
+		<xs:complexType>
+			<xs:sequence maxOccurs="unbounded">
+				<xs:element ref="tg:dvd" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="dvd">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="title" type="xs:string" />
+				<xs:element name="director" type="tg:authorType" />
+				<xs:element name="length" type="xs:float" minOccurs="0" />
+			</xs:sequence>
+			<xs:attribute name="id" type="xs:integer" use="required" />
+		</xs:complexType>
+	</xs:element>
+
+	<!-- hieronder mijn complexTypes en SimpleType; bij verwijzing prefix tg: gebr -->
+	<xs:complexType name="titleType">
+		<xs:simpleContent>
+			<!-- extension, restriction (van een vorige extension) -->
+			<xs:extension base="xs:string">
+				<xs:attribute name="remark" type="xs:string" />
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+	<xs:complexType name="authorType">
+		<xs:all>
+			<xs:element name="firstname" type="tg:nameString" minOccurs="0" />
+			<xs:element name="lastname" type="tg:nameString" minOccurs="0" />
+		</xs:all>
+		<!-- xs:all of xs:sequence opgeven in propvenster Visual Studio, prop Order =>wijzigt GroupChild
+		xs:all =>alle elems moeten voorkomen, maar mogen in willek volgorde
+		-->
+	</xs:complexType>
+
+	<xs:simpleType name="nameString">
+		<xs:restriction base="xs:string">
+			<!-- list, union, restriction -->
+			<xs:maxLength value="30" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="songType">
+		<xs:sequence>
+			<xs:element name="title" type="xs:string" />
+			<xs:element name="length" type="xs:float" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

@@ -1,0 +1,42 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><!-- dir="rtl" => lijnt rechts uit, maar tekst blijft vlnr lopen -->
+<head>
+<title>Tekst richting</title>
+<style type="text/css">
+
+</style>
+<script language="javascript">
+
+</script>
+</head>
+
+<!--
+dir="lrt|rtl" style="direction:ltr|rtl"
+je moet per tag een aparte unicode-bidi:bidi-override; invoegen, anders hooudt zo'n tag
+zijn oorspr richting.
+-->
+
+<body bgcolor="#FFFFdd">
+Dit is een kleine tekst
+<p dir="rtl">Nieuwe paragraaf</p>
+Gewone tekst
+<div style="direction=rtl; unicode-bidi:bidi-override;">
+<h3 style="unicode-bidi:bidi-override;">Dit is kopje h3</h3>
+En gewone tekst.
+<br>Nieuwe regel
+<p>nieuwe paragraaf</p>
+En weer gewone regel.
+</div>
+<br><br>
+<!-- zonder style default alleen vert scrollbar; als nodig met style="overflow:auto;" -->
+<textarea rows=8 cols=30 >
+Een tekst in een textarea met breedte 30 cols.
+Tweede regel.
+Derde regel.
+En nog maar eens een regel.
+Je hoeft hier geen br-tag in te zetten!
+</textarea>
+</body>
+
+</html>

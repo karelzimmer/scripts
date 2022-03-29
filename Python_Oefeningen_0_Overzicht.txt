@@ -1,0 +1,129 @@
+Python cursus
+Overzicht oefeningen
+
+Deel 1. Basis oefeningen
+
+[1] Werken met de Python interpreter
+ - rekenen met getallen
+ - functies pow(), dir(), math.pow(), math.sqrt()
+ - variabelen
+ - print()
+ - vergelijken
+ - strings
+ - slices
+ - len(), ord(), chr()
+ - int(), round(), hex(), oct(), bin()
+ - str(), type(), quit()
+
+[2] Werken met IDLE
+ - module maken
+ - commentaar
+ - print met formatting: % en S.format()
+ - input()
+
+Deel 2. If- en while-statements
+
+[1] Werken met if- en while-statements
+ - variabelen, input(), print()
+ - if-statement
+ - if .. elif .. else ..
+ - while-statement
+ - float()
+
+Deel 3. Functies
+
+[1] Functies en lambdas
+ - functies met argumenten
+ - functie aanroepen in script onderaan module
+ - eenvoudige lambdas
+ - functie binnen functie
+
+[2] Module met functies
+ - aparte module met functies
+ - import van deze module
+ 
+[3] Gestructureerde foutafhandeling (runtime exception handling)
+ - foutafhandeling met try .. except ..
+ - meerdere except's
+
+[4] Reguliere expressies (indien er tijd over is)
+ - module re
+ - test met re.fullmatch() en regex pattern
+ - match object met .group()
+ - back reference in regex pattern
+ - zoek en vervang
+
+[5] Extra oefeningen met functies (voor de snelle cursisten)
+ - functie interpoleer() met 5 argumenten
+ - functie die andere functie retourneert, lambda
+ - metadata over functie
+
+Deel 4. Collecties
+
+[1] list
+ - range()
+ - functie met variabele argumentenlijst
+ - letters binnen string: slice, lus
+ - list, min(), max(), sum()
+ - comprehension expressions
+ - map(), filter()
+
+[2] dict en set
+ - dict
+ - set, vereniging, doorsnede, verschil
+
+[3] Extra oefeningen (deze kosten veel tijd; kies de leukste!)
+ - matrices optellen en vermenigvuldigen
+ - set
+ - tekstanalyse (begin van NLP), regex, wordcount
+
+Deel 5. Werken met bestanden
+
+[1] Tekstbestanden lezen en schrijven
+ - open()
+ - tekst schrijven met fh.write(), lezen met fh.read() of for-lus
+ - foutafhandeling met try .. except .. finally ..
+ - context manager met with ..
+
+[2] Csv
+ - module csv
+ - lezen met csv.reader
+ - lezen met csv.DictReader
+ - schrijven met csv.writer
+
+[3] Extra oefeningen met binaire bestanden en directories (voor wie tijd over heeft)
+ - module struct
+ - binair schrijven van getallen
+ - binair lezen van getallen
+ - little endian vs big endian
+ - struct alignment
+ - modules os, os.path
+ - directory uitlezen
+ - gebruik van raw string wegens "\"
+ - module time
+ - lastmodified van bestand fatsoenlijk weergeven
+ - module glob
+ - bestanden zoeken met wildcards * en ?
+
+Deel 6. Object Oriëntatie
+(Aan dit deel komen we niet altijd toe.)
+
+[1] Base class Auto
+ - class definitie
+ - static (class wide) variabelen en functies
+ - __init__() met instance variabelen
+ - Auto object
+
+[2] Instance methoden
+ - instance methoden met en zonder argumenten (maar wel met self)
+
+[3] Magic methods en list van Auto-objecten
+ - __str__(), __repr__(), __doc__
+ - print(obj)
+ - help(Auto)
+ - list van Auto-objecten
+
+[4] Afgeleide class (subclass) VrachtAuto
+ - afgeleide class VrachtAuto
+ - eigen __init__() met super()
+ - extra instance methoden

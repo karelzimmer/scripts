@@ -1,0 +1,8 @@
+<ns:Employees xmlns:ns="http://www.mydomain.com">
+
+  <ns:Employee>
+    <ns:Name>John Smith</ns:Name>
+    <ns:Salary>25000</ns:Salary>
+  </ns:Employee>
+
+</ns:Employees>

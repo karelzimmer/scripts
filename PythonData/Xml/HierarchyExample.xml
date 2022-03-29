@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<FlightReservation>
+
+  <PartyDetails>
+    <NumberOfAdults>2</NumberOfAdults>
+    <NumberOfChildren>2</NumberOfChildren>
+  </PartyDetails>
+
+  <ContactDetails>
+    <Name>Angela Smith</Name>
+    <Address>
+      <HouseNumber>4</HouseNumber>
+      <Postcode>SW1 1BA</Postcode>
+    </Address>
+  </ContactDetails>
+
+  <BookingDetails>
+    <BookingCode>FZ87YB62</BookingCode>
+    <DateOfBooking>2016-01-31</DateOfBooking>
+  </BookingDetails>
+
+  <FlightDetails>
+    <DateOfFlight>2016-02-29</DateOfFlight>
+    <FlightCode>BA001</FlightCode>
+  </FlightDetails> 
+
+</FlightReservation>

@@ -1,0 +1,115 @@
+Deel 5. Werken met bestanden
+
+Oefeningen met lezen en schrijven van tekstbestanden
+Lezen en schrijven van csv bestanden
+
+
+[1] Tekstbestanden lezen en schrijven
+
+1. Maak een nieuwe module met de naam ex5_filehandling.py. Maak hierin een functie schrijf_tekst(). Open een nieuw bestand supergroep.txt voor schrijven. Gebruik de functie open() met de correcte argumenten, en zet het resulterende file object in variable fh. Schrijf middels fh de tekst "Crosby\n" naar het bestand. Gebruik hiervoor de methode write() van fh. Schrijf daarna "Stills\n" en daarna "Nash\n". En daarna "and Young, who always comes lately.". Sluit fh met de methode close(). Druk op het scherm af: "\nKlaar met schrijven".
+
+Zet een paar regels onder de functie het commentaar: --- script ---. Roep hieronder schrijf_tekst() aan. Bekijk de inhoud van supergroep.txt met Notepad.
+
+2. Maak onder schrijf_tekst() een nieuwe functie lees_tekst(). Open hierin de file supergroep.txt voor lezen (dit is de default) en zet het file object in variable fh. Druk de inhoud van supergroep.txt af op het scherm met de methode read() van fh. Sluit fh. Druk af: "\nKlaar met lezen".
+Maak in het script commentaar van de vorige aanroep. Roep lees_tekst() aan. Test.
+ 
+3. Wijzig lees_tekst(). Maak commentaar van de regel met read(). Maak daaronder een for-lus die het bestand regel voor regel uitleest en afdrukt op het scherm. Test.
+Hoe wordt de tekst afgedrukt? Verschijnen er lege regels? Zo ja, probeer dan print() met de optie end=''. Test.
+
+4. Als je werkt met bestanden kunnen makkelijk runtime exceptions optreden, bijvoorbeeld als een verkeerde directory of bestandsnaam is opgegeven. Ook kunnen er fouten optreden tijdens ht lezen en schrijven. Om in zo'n geval crashes te voorkomen, is foutafhandeling van belang.
+Kopieer lees_tekst() naar lees_tekst_try(). Wijzig hierin de bestandsnaam in super.txt. Roep deze functie aan in het script. Test. Welke fout krijg je?
+
+Voeg foutafhandeling toe aan lees_tekst_try(). Zet het openen en lezen in een try-blok. Vang daaronder in een except-blok de boven opgetreden runtime exception af en druk deze af. Zet daaronder een except-blok voor andere OSError's die kunnen optreden. Druk ook deze af. Sluit tenslotte fh onder, maar buiten het laatste except-blok. Het bestand moet immers gesloten worden als het lezen goed gaat, maar ook als het fout ging. Test de functie met nog steeds de foute bestandsnaam super.txt. Wat gebeurt er?
+
+5. Als het goed gaat, ging het niet goed en krijg je na de afdruk van de exception een UnboundLocalError. Dat komt omdat Python het bestand super.txt niet kon openen en daardoor ook niet de variabele fh kon maken. Er is dus geen variabele fh en daarom werkt fh.close() niet. Dit probleem kun je oplossen door bovenin de functie voor het try-blok, of bovenin het try-blok, de code fh = None toe te voegen. Nu bestaat fh wel. Probeer dit uit.
+
+Als het goed gaat, ging het weer niet goed. Nu krijg je een AttributeError. Dat komt omdat fh weliswaar bestaat, maar niet verwijst naar een bestandsobject. Dit probleem kun je voorkomen door te controleren of fh None bevat. Zo nee, dan werkt fh.close(). Test.
+
+Je kunt de laatste code ook in een finally-blok zetten. Probeer dit uit. Test de functie tenslotte met de juiste bestandsnaam supergroep.txt.
+
+6. Python kent context managers waarmee bestanden of database connecties automatisch gesloten worden, of er nu wel of geen fout is opgetreden. Je maakt een context manager eenvoudig met een with-statement.
+Kopieer lees_tekst() naar lees_tekst_with(). Open supergroep.txt met een with-statement en druk de inhoud af met read(). Je hoeft fh niet expliciet te sluiten. Test de nieuwe functie.
+
+7. Probeer nu met bestandsnaam super.txt. Er treedt nog steeds een fout op. Dat komt omdat deze context manager weliswaar een geopend bestand automatisch sluit, maar verder geen fouten afhandelt. Je moet dus het with-blok in een try-blok zetten en onderaan een of meer except-blokken toevoegen. Probeer dit uit!
+
+
+[2] Csv
+
+Python heeft een eenvoudige module voor het lezen en schrijven van Excel csv-bestanden. Deze knipt iedere tekstregel op in aparte velden. Voor serieuze data analyse moet je de externe libraries numpy en pandas downloaden en installeren. Dit zeer grote onderwerp valt buiten de cursus.
+
+1. Kopieer het bestand Koffie_recensies.csv van de share \Dump naar de werk directory waar ex5_filehandling.py staat. Open de csv met Notepad. Het bestand ziet er ongeveer zo uit:
+"Vestiging","Service","Kwaliteit","Schoon"
+"Almelo",5,5,5
+"Hengelo",4,5,3
+"Enschede",5,5,5
+enz.
+Bovenaan staat de kopregel. Daaronder staan per vestiging waarderingen.
+
+2. Maak in ex5_filehandling.py net boven het script een nieuwe functie lees_csv(). Open daarin Koffie_recensies.csv voor lezen en zet het file object in variable fh. Lees het bestand in een lus regel voor regel uit en druk de regels af. Sluit fh. Maak in het script commentaar van de vorige aanroepen en roep nu deze functie aan. Test.
+
+3. Importeer bovenin ex5_filehandling.py de module csv. Wijzig lees_csv(). Zet boven de lus de volgende code:
+rd =  csv.reader(fh)
+Dit wordt een csv reader voor het file object. Wijzig de for-lus als volgt:
+for rij in rd:
+    print(rij)
+Test. Wat wordt op het scherm afgedrukt?
+
+Wijzig lees_csv(). Wijzig de lus zo, dat van iedere regel alleen de eerste twee items getoond worden. Test.
+
+4. Kopieer lees_csv() naar een nieuwe functie lees_csv_dict(). Wijzig deze functie. Gebruik nu een csv dictionary reader ipv een csv reader:
+rd = csv.DictReader(fh)
+Wijzig de lus en laat hem hele regels afdrukken. Commentarieer in het script de vorige aanroep uiten roep deze functie aan. Test. Wat zie je?
+
+Wijzig lees_csv_dict(). Wijzig de lus zodat alleen de items Vestiging, Schoon en Service worden getoond. Druk het resultaat netjes in kolommen af. Test.
+
+5. Maak een nieuwe schrijf_csv(). Declareer daarin een tweedimensionale list:
+data = [
+    ['Jitske', 7.0, 6.3, 8.5, 6.9],
+    ['Jitse', 5.8, 5.4, 6.3, 9.8],
+    ['Oetse', 5.9, 5.5, 6.4, 9.7],
+    ['Tjerk', 8.5, 8.5, 8.5, 8.6]
+]
+
+Open een nieuw bestand Cijfers.csv voor schrijven met extra argument newline="" en zet het file object in fh. Zonder dit extra argument eindigt csv iedere regel met cr,cr,lf ipv cr,lf.
+Maak een csv writer voor fh:
+wr = csv.writer(fh)
+Gebruik de methode writerow() van wr om een kopregel te schrijven met de kolomkoppen Naam, Nederlands, Frans, Duits, Engels.
+Gebruik de methode writerows() van wr om de data naar het bestand te schrijven. Sluit fh. Test. Bekijk het resultaat in Notepad.
+
+Voeg nu aan de writer het extra argument quoting=csv.QUOTE_NONNUMERIC toe en test opnieuw. Bekijk het resultaat weer in Notepad.
+
+
+[3] Extra oefeningen met binaire bestanden en directories (voor wie tijd over heeft)
+
+Een binair bestand bestaat uit een reeks bytes. Klassieke voorbeelden zijn afbeeldingen (bv .jpg) of geluidsbestanden (bv .wav), maar ook het oude Word .doc formaat is een binair bestand met allerlei interne codes. Je kunt een binair bestand niet goed uitlezen als je de interne structuur niet kent. In de volgende oefening lossen we dit probleem op door zelf een binair bestand te schrijven en het vervolgens uit te lezen. Hiervoor gebruiken we de module struct.
+
+1. Importeer de module struct. Maak net boven het script een nieuwe functie schrijf_bin(). Schrijf hierin met struct.pack() en de format string "iidbb" achtereenvolgens de waarden 97, 98, 36.75, True, False naar de variabele data. Dit wordt een array van bytes. Zoek in de help op wat deze symboolletters betekenen en hoe je pack moet gebruiken. Druk de lengte van data en daarna data af. De lengte moet 18 worden: 4 bytes per int, 8 bytes voor de double en 2 bytes voor de boolean waarden. Controleer dit met struct.calcsize("iidbb"). Test.
+
+Getallen kunnen op twee manieren binair in een byte array en dan een bestand worden opgeslagen, nl. met de kleinste byte vooraan (little endian) of de grootste vooraan (big endian). Hoe staan de bytes in data?
+
+Zet vooraan in de format string een ">" en test opnieuw. Is de volgorde nu little of big endian? Vervang de ">" door een "<" en test opnieuw.
+
+2. Haal de "<" weg en vervang de tweede "i" door een "h". Dit is het symbool voor een short, een getal van 2 bytes. Test opnieuw. Hoe lang is data nu? Zet vervolgens vooraan weer de "<" en test opnieuw. Hoe lang is data?
+
+Binaire structuren krijgen in Windows standaard een alignment van 4 bytes: ieder item krijgt een veelvoud van deze lengte. Onze short is 2 bytes groot, maar krijgt 2 extra bytes vanwege deze standaard alignment. Maar zet je vooraan een "<" of ">", dan gelden de alignment regels niet en wordt de short als 2 bytes zonder aanvulling weggeschreven. Dit alles compliceert het werken met binaire bestanden behoorlijk.
+
+3. Herstel de format string in de oorspronkelijke staat "iidbb". Commentarieer de print() statements uit. Open nu een bestand data.bin voor binair schrijven en zet het fileobject in fh. Schrijf data naar het bestand en sluit het. Test.
+Bekijk het resultaat in Notepad. Het ziet er waardeloos uit.
+
+4. Maak nu net boven het script de functie lees_bin(). Open hierin data.bin voor binair lezen. Lees het bestand en zet de inhoud in variabele data. Dit wordt een byte array. Lees met struct.unpack() en de bekende format string data uit en zet het resultaat in items. Dit wordt een tupel die de twee ints, de double en de twee bytes bevat. Druk items af. Test.
+
+Python kent diverse modules om met directories en bestanden te werken, bijvoorbeeld os, os.path, glob en shutil.
+
+5. Kopieer de directory doc met subdirectories en bestanden van de share \Dump naar de werk directory waar ex5_filehandling.py staat. Importeer bovenin ex5_filehandling.py de module os. Maak net boven het script de functie test_dir(). Druk hierin met een functie van os de huidige werkdirectory af. Test.
+
+6. Maak in de functie de variabele pad met waarde "doc". Druk pad af, daaronder het absolute pad. Druk daaronder af of pad bestaat, of het naar een directory wijst, of naar een bestand. Gebruik hiervoor functies uit os.path. Test.
+Test daarna met pad = "doccc". Probeer daarna andere directories en bestandsnamen uit. Je kunt ook met relatieve padnamen "." en ".." en subdirectories werken. Om te voorkomen dat "\" als escape character wordt gezien, kun je een pad het beste altijd als raw string opgeven.
+
+7. Maak een nieuwe functie test_listdir(). Declareer daarin de variabele pad met waarde r"doc". Druk in een lus met de functie listdir() van os de inhoud van de directory "doc" af. Test.
+Wijzig de functie. Controleer nu in de lus tevens of ieder item bestaat. Deze functie verlangt een pad + itemnaam, terwijl listdir() alleen itemnamen teruggeeft. Je kunt pad aan itemnaam koppelen met de functie os.path.join().
+
+8. Wijzig de lus in de functie. Druk nu de bestandenlijst af en geef voor iedere regel de bestandsnaam, een D voor directory of B voor bestand, de bestandsgrootte en de datum/tijd van laatste wijziging. Test.
+De datum/tijd wordt een groot getal in seconden. Converteer dit in een begrijpelijke tekst met de functie ctime van de module time. Test.
+
+9. Om bestanden te zoeken via de jokertekens * en ? heb je de functie glob() uit de module glob nodig. Deze retourneert anders dan listdir() een list met pad + itemnamen. Maak een functie test_glob() en zoek daarin de .txt bestanden in de directory doc. Zorg voor eenzelfde output als in de vorige oefening. Test.
+Zoek daarna de .htm/.html bestanden. Test.

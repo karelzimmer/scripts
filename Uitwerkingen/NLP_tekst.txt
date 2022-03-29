@@ -1,0 +1,22 @@
+﻿
+r = """\
+Hij nam een laatste trek van zijn sigaret en dacht, half mompelend,
+bij zichzelf: 'Het wordt tijd een stap vooruit te zetten.' Hij keek
+naar beneden naar zijn schoenen en zag daaronder de glibberige rand
+van de brugleuning. Hij keek naar beneden langs de brugleuning en
+zag in de diepte de rivier kolken. Het was  volle  maan.
+"""
+
+r = """\
+What an elephant is, it is one of the animals. And what an elephant does,
+it lives in the jungle. It can also live in the zoo. And what it has, it
+has long, gray ears, fan ears, ears that can blow in the wind. It has a
+long trunk that can pick up grass or pick up hay. If they're in a bad
+mood, it can be terrible. If the elephant gets mad, it could stomp, it
+could charge. Sometimes elephants can charge. They have big long tusks.
+They can damage a car. It could be dangerous. When they're in a pinch,
+when they're in a bad mood, it can be terrible. You don't want an
+elephant as a pet. You want a cat or a dog or a bird.
+"""
+#tekst: Crystal (heeft Williams syndroom).
+#in: Oliver Sacks, Musicophilia, p. 360

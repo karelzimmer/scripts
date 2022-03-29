@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<Company Name="Acme" YearOfIncorporation="1997">
+  <Employee EmpNum="456" JobTitle="Programmer">
+    <Name>
+      <FirstName>Matthew</FirstName> 
+      <LastName>Williams</LastName>
+    </Name>
+    <Tel>222-7777-111</Tel> 
+    <Tel>222-7777-222</Tel> 
+    <Tel>222-7777-333</Tel> 
+    <Salary>37500</Salary>
+  </Employee>
+  <Employee EmpNum="123" JobTitle="Director">
+    <Name>
+      <FirstName>Chris</FirstName> 
+      <LastName>Williams</LastName>
+    </Name>
+    <Tel>222-7777-123</Tel> 
+    <Salary>79500</Salary>
+  </Employee>
+  <Employee EmpNum="923" JobTitle="Programmer">
+    <Name>
+      <FirstName>Joseff</FirstName> 
+      <LastName>Smith</LastName>
+    </Name>
+    <Tel>222-7777-923</Tel> 
+    <Salary>142000</Salary>
+  </Employee>
+  <Employee EmpNum="789" JobTitle="Programmer">
+    <Name>
+      <FirstName>Emily</FirstName> 
+      <LastName>Smith</LastName>
+    </Name>
+    <Tel>222-7777-789</Tel> 
+    <Salary>57000</Salary>
+  </Employee>
+  <Employee EmpNum="101" JobTitle="Programmer">
+    <Name>
+      <FirstName>Thomas</FirstName> 
+      <LastName>Williams</LastName>
+    </Name>
+    <Tel>222-7777-101</Tel> 
+    <DailyRate>425</DailyRate>
+  </Employee>
+</Company> 
