@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ref: https://developer.chrome.com/docs/extensions/mv3/external_extensions/#preference-linux
+# Ref: https://askubuntu.com/questions/1063331/how-to-install-google-chrome-extensions-though-terminal
+
 install_chrome_extension () {
   preferences_dir_path="/opt/google/chrome/extensions"
   pref_file_path="$preferences_dir_path/$1.json"
