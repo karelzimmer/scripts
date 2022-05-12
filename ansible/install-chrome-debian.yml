@@ -1,6 +1,6 @@
 # Zie ook ~/scripts/install-chrome-debian.sh
 
-# FOUT
+# FOUT in de zin van keys plaatsen in /etc/apt/trusted.gpg of /etc/apt/trusted.gpg.d/
 ---
 - name: install Google Chrome
   hosts: all
