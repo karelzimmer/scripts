@@ -1,0 +1,8 @@
+[webservers]
+vps4 ansible_host=vps4.dba-training.online
+
+[dbservers]
+vps4 ansible_host=vps4.dba-training.online
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
