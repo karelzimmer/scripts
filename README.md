@@ -4,11 +4,11 @@ scripts
 EN
 ---
 
-Collection of Ansible, Bash, and Python scripts.
+Collection of Bash scripts.
 Just for (self) study and a work in progress :)
 
 NL
 ---
 
-Verzameling Ansible-, Bash- en Python-scripts.
+Verzameling Bash-scripts.
 Gewoon voor (zelf)studie, en een werk in uitvoering :)

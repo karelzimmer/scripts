@@ -1,8 +1,0 @@
-t1 = ( "appel", "banaan" )
-t2 = ( "appel", "banaan" )
-t3 = ( "appel", "kers" )
-t4 = ( "appel", "banaan", "kers" )
-print( t1 == t2 )
-print( t1 < t3 )
-print( t1 > t4 )
-print( t3 > t4 )
