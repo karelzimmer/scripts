@@ -1,7 +1,7 @@
 #!/bin/bash
 
 dialog  --title 'Message'           \
-        --msgbox 'Hello, world!'    \
+        --msgbox 'Hello World!'    \
         5 20
 
 dialog  --title "Message"               \
