@@ -1,4 +1,4 @@
 # scripts
 
-Verzameling Bash-scripts.
-Voor (zelf)studie, en een werk in uitvoering :)
+Mijn Bash-scripts.
+Voor (zelf)studie, werk in uitvoering.
