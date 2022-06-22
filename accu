@@ -1,5 +1,5 @@
 #!/bin/bash
-# ##############################################################################
+###############################################################################
 # Bestand:  accu
 # Doel:     Bewaak accustatus
 # Gebruik:  Automatisch uitvoeren na het aanmelden (aanbevolen)
@@ -9,39 +9,23 @@
 #           Naar voorbeelden op het internet:
 #           http://malwaretips.com/threads/useful-scripts-for-linux.28133/ en
 #           http://www.pclinuxos.com/forum/index.php?topic=129283.5;wap2
-# ------------------------------------------------------------------------------
-# Auteursrecht (c) 2015-2020 Karel Zimmer.
-#
-# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen
-# onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd
-# door de Free Software Foundation, onder versie 3 van de Licentie of (naar uw
-# keuze) elke latere versie.
-#
-# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER
-# ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN
-# DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
-# Zie de GNU Algemene Publieke Licentie voor meer details.
-#
-# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
-# samen met dit programma. Als dat niet het geval is, zie
-# http://www.gnu.org/licenses/.
-# ##############################################################################
+###############################################################################
 # REL_NUM=07.01.00
 # REL_DAT=2020-03-15
 # REL_MSG='Van /usr naar /opt'
 
-# ##############################################################################
+###############################################################################
 # Instellingen
-# ##############################################################################
+###############################################################################
 readonly PROGNAME=accu
 if [[ $1 ]]; then
     printf '%s\n' "Gebruik: $PROGNAME"
     exit 0
 fi
 
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Globale constanten
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 declare -ir CRITICAL_BATTERY=2
 declare -ir ERROR=1
 declare -ir LOW_BATTERY=20
@@ -54,18 +38,18 @@ readonly SLEEP=3m
 readonly TITLE='Accu'
 readonly WAIT_FOR_ACTION=60s
 
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Globale variabelen
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 declare -i CURRENT_BATTERY=0
 
-# ##############################################################################
+###############################################################################
 # Functies
-# ##############################################################################
+###############################################################################
 
-# ##############################################################################
+###############################################################################
 # Hoofdlijn
-# ##############################################################################
+###############################################################################
 if [[ -e $BATTERY_PATH0 ]]; then
     BATTERY_PATH=$BATTERY_PATH0
 else
