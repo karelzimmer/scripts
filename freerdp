@@ -1,41 +1,29 @@
 #!/bin/bash
-################################################################################
+###############################################################################
 # Bestand:  freerdp
-# Doel:     Toegang tot een computer op afstand, op dit moment 'World of DocMaster'
+# Doel:     Toegang tot een computer op afstand, op dit moment
+#           'World of DocMaster'
 # Gebruik:  1. Door een instellingsbestand (aanbevolen).
 #           2. Met starter FreeRDP (aanbevolen).
 #           3. In het terminalvenster:
 #              freerdp [OPTIE...]
 # Auteur:   Karel Zimmer (http://karelzimmer.nl, info@karelzimmer.nl)
-#-------------------------------------------------------------------------------
+###############################################################################
 # Auteursrecht © 2015-2018 Karel Zimmer.
-#
-# Dit programma is vrije software: u mag het herdistribueren en/of wijzigen onder
-# de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd door de
-# Free Software Foundation, onder versie 3 van de Licentie of (naar uw keuze)
-# elke latere versie.
-#
-# Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar
-# ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die
-# GEBRUIKELIJK ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL.
-# Zie de GNU Algemene Publieke Licentie voor meer details.
-#
-# U hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen
-# samen met dit programma. Als dat niet het geval is, zie
-# http://www.gnu.org/licenses/.
-#-------------------------------------------------------------------------------
+
+###############################################################################
 # Versies:  1.0.0   2015-11-09  Eerste versie
 #           2.0.0   2016-12-28  FreeRDP installeren indien nodig
 #           3.0.0   2017-10-03  Verborgen optie man toegevoegd
 #           4.0.0   2018-05-19  Optie gui toegevoegd (GUIfying scripts)
 #           5.0.0   2018-07-28  Gebruik mappen volgens de Linux FHS standaard
 ################################################################################
-declare VERSION_NUMBER=5.2.3
-declare RELEASE_DATE=2018-10-25
+# VERSION_NUMBER=5.2.3
+# RELEASE_DATE=2018-10-25
 
-################################################################################
+###############################################################################
 # Instellingen
-################################################################################
+###############################################################################
 if [[ $0 == *bash ]]; then
     text="Niet uitvoeren met opdracht source."
     zenity  --error         \
@@ -46,13 +34,13 @@ if [[ $0 == *bash ]]; then
     return 1
 fi
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Algemene instellingen
-#-------------------------------------------------------------------------------
-readonly FIRST_COPYRIGHTYEAR=2015
-readonly PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-readonly PROGNAME=$(basename "${BASH_SOURCE[0]}")
-readonly RUN_AS_SUPERUSER=false
+###############################################################################
+# FIRST_COPYRIGHTYEAR=2015
+# PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# PROGNAME=$(basename "${BASH_SOURCE[0]}")
+# RUN_AS_SUPERUSER=false
 # shellcheck source=./common.sh
 if ! source "$PROGDIR"/common.sh 2> /dev/null; then
     text="Bestand common.sh is niet gevonden of bevat fouten; voer uit:\nwget \
@@ -65,9 +53,9 @@ karelzimmer.nl/s;bash s"
     exit 1
 fi
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Globale constanten
-#-------------------------------------------------------------------------------
+###############################################################################
 readonly SERVER='RDCB2012.workspace.worldofdocmaster.com'
 readonly GATEWAY='rdg01.workspace.worldofdocmaster.com'
 
@@ -75,7 +63,7 @@ readonly OPTS_SHORT=$OPTS_SHORT_COMMON'g'
 readonly OPTS_LONG=$OPTS_LONG_COMMON',gui'
 readonly OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
 
-readonly USAGE=$(cat << USAGE
+USAGE=$(cat << USAGE
 $PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
 
 Typ '$PROGNAME --help' voor meer informatie.
@@ -140,9 +128,9 @@ $MAN_FOOTER
 MAN
 )
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Globale variabelen
-#-------------------------------------------------------------------------------
+###############################################################################
 # Array, integer
 
 # Boolean
@@ -150,17 +138,17 @@ declare OPT_GUI=false
 
 # Overig
 
-################################################################################
+###############################################################################
 # Functies
-################################################################################
+###############################################################################
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Controleer de invoer van het script en verwerk deze waar mogelijk
 # Globalen:
 #   Geen
 # Argumenten:
 #   Opties, optie argumenten, non-optie argumenten
-#-------------------------------------------------------------------------------
+###############################################################################
 function controleer_invoer {
 
     local -i getopt_rc=0
@@ -257,13 +245,13 @@ function controleer_invoer {
     fi
 }
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Verwerk
 # Globalen:
 #   Geen
 # Argumenten:
 #   Geen
-#-------------------------------------------------------------------------------
+###############################################################################
 function verwerk {
 
     local quest1='Wat is de gebruikersnaam'
@@ -330,27 +318,26 @@ $quest2 van $rdp_gebruikersnaam?: "
     /p:"$rdp_wachtwoord"        | $LOGCMD || true
 }
 
-#-------------------------------------------------------------------------------
+###############################################################################
 # Afsluitende acties
 # Globalen:
 #   Geen
 # Argumenten:
 #   Geen
-#-------------------------------------------------------------------------------
+###############################################################################
 function afsl_script {
 
     success "Opdracht $PROGNAME is succesvol uitgevoerd."
 }
 
-################################################################################
+###############################################################################
 # Hoofdlijn
-################################################################################
+###############################################################################
 
 # init_script
 {
     init_script
     controleer_invoer "$@"
-    controleer_gebruiker $RUN_AS_SUPERUSER
 }
 
 # verwerk
@@ -362,5 +349,3 @@ function afsl_script {
 {
     afsl_script
 }
-
-# Einde script
