@@ -17,7 +17,7 @@
 ###############################################################################
 # Instellingen
 ###############################################################################
-readonly PROGNAME=accu
+PROGNAME=accu
 if [[ $1 ]]; then
     printf '%s\n' "Gebruik: $PROGNAME"
     exit 0
@@ -26,17 +26,17 @@ fi
 ###############################################################################
 # Globale constanten
 ###############################################################################
-declare -ir CRITICAL_BATTERY=2
-declare -ir ERROR=1
-declare -ir LOW_BATTERY=20
-readonly ACTION='/sbin/poweroff'
-readonly BATTERY_PATH0='/sys/class/power_supply/BAT0'
-readonly BATTERY_PATH1='/sys/class/power_supply/BAT1'
-readonly CRITBAT_ICON='battery_empty'
-readonly LOWBAT_ICON='battery-caution'
-readonly SLEEP=3m
-readonly TITLE='Accu'
-readonly WAIT_FOR_ACTION=60s
+declare -i CRITICAL_BATTERY=2
+declare -i ERROR=1
+declare -i LOW_BATTERY=20
+ACTION='/sbin/poweroff'
+BATTERY_PATH0='/sys/class/power_supply/BAT0'
+BATTERY_PATH1='/sys/class/power_supply/BAT1'
+CRITBAT_ICON='battery_empty'
+LOWBAT_ICON='battery-caution'
+SLEEP=3m
+TITLE='Accu'
+WAIT_FOR_ACTION=60s
 
 ###############################################################################
 # Globale variabelen

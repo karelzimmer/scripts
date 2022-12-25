@@ -11,12 +11,12 @@ PROGRAM_NAME=mkusb
 # Global constants
 ###############################################################################
 
-readonly OPTIONS_SHORT=
-readonly OPTIONS_LONG=
-readonly USAGELINE="Gebruik: $PROGRAM_NAME"
+OPTIONS_SHORT=
+OPTIONS_LONG=
+USAGELINE="Gebruik: $PROGRAM_NAME"
 
-readonly DEVICE=/dev/sdb
-readonly SOURCE=/home/${SUDO_USER:-$USER}/Downloads
+DEVICE=/dev/sdb
+SOURCE=/home/${SUDO_USER:-$USER}/Downloads
 
 ###############################################################################
 # Global variables

@@ -56,12 +56,12 @@ fi
 ###############################################################################
 # Globale constanten
 ###############################################################################
-readonly SERVER='RDCB2012.workspace.worldofdocmaster.com'
-readonly GATEWAY='rdg01.workspace.worldofdocmaster.com'
+SERVER='RDCB2012.workspace.worldofdocmaster.com'
+GATEWAY='rdg01.workspace.worldofdocmaster.com'
 
-readonly OPTS_SHORT=$OPTS_SHORT_COMMON'g'
-readonly OPTS_LONG=$OPTS_LONG_COMMON',gui'
-readonly OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
+OPTS_SHORT=$OPTS_SHORT_COMMON'g'
+OPTS_LONG=$OPTS_LONG_COMMON',gui'
+OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
 
 USAGE=$(cat << USAGE
 $PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
@@ -69,7 +69,7 @@ $PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
 Typ '$PROGNAME --help' voor meer informatie.
 USAGE
 )
-readonly HELP=$(cat << HELP
+HELP=$(cat << HELP
 $PROGNAME [OPTIE...]
 
 Toegang tot een computer op afstand.
@@ -81,7 +81,7 @@ $OPTS_HELP_COMMON
 Typ 'man $PROGNAME' voor meer informatie.
 HELP
 )
-readonly MAN=$(cat << MAN
+MAN=$(cat << MAN
 $MAN_HEADER
 
 ${B}NAAM${N}
@@ -134,7 +134,7 @@ MAN
 # Array, integer
 
 # Boolean
-declare OPT_GUI=false
+OPT_GUI=false
 
 # Overig
 

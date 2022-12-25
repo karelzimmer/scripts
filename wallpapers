@@ -21,8 +21,8 @@
 #          11.0.0   2018-05-19  Optie gui toegevoegd (GUIfying scripts)
 #          12.0.0   2018-07-28  Gebruik mappen volgens de Linux FHS standaard
 ###############################################################################
-declare VERSION_NUMBER=12.2.6
-declare RELEASE_DATE=2018-11-30
+VERSION_NUMBER=12.2.6
+RELEASE_DATE=2018-11-30
 
 ###############################################################################
 # Instellingen
@@ -40,10 +40,10 @@ fi
 #------------------------------------------------------------------------------
 # Algemene instellingen
 #------------------------------------------------------------------------------
-readonly FIRST_COPYRIGHTYEAR=2013
-readonly PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-readonly PROGNAME=$(basename "${BASH_SOURCE[0]}")
-readonly RUN_AS_SUPERUSER=true
+FIRST_COPYRIGHTYEAR=2013
+PROGDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+PROGNAME=$(basename "${BASH_SOURCE[0]}")
+RUN_AS_SUPERUSER=true
 # shellcheck source=./common.sh
 if ! source "$PROGDIR"/common.sh 2> /dev/null; then
     text="Bestand common.sh is niet gevonden of bevat fouten; voer uit:\nwget \
@@ -59,33 +59,33 @@ fi
 #------------------------------------------------------------------------------
 # Globale constanten
 #------------------------------------------------------------------------------
-readonly SOURCEURL=https://karelzimmer.nl/downloads/$PROGNAME
-readonly TARFILE=wallpapers.tar
+SOURCEURL=https://karelzimmer.nl/downloads/$PROGNAME
+TARFILE=wallpapers.tar
 
-readonly HASHPROG=sha256sum
-readonly HASHFILE=$TARFILE.$HASHPROG
+HASHPROG=sha256sum
+HASHFILE=$TARFILE.$HASHPROG
 
-readonly TARGETDIR_A=/opt/$PROGNAME
-readonly TARGETDIR_L=/usr/share/lubuntu/wallpapers
-readonly TARGETDIR_X=/usr/share/xfce4/backdrops
+TARGETDIR_A=/opt/$PROGNAME
+TARGETDIR_L=/usr/share/lubuntu/wallpapers
+TARGETDIR_X=/usr/share/xfce4/backdrops
 
-readonly CONFIGDIR=/usr/share/gnome-background-properties
-readonly CONFIGFILE=opt-$PROGNAME.xml
-readonly CONFIG=$CONFIGDIR/$CONFIGFILE
+CONFIGDIR=/usr/share/gnome-background-properties
+CONFIGFILE=opt-$PROGNAME.xml
+CONFIG=$CONFIGDIR/$CONFIGFILE
 
-readonly WAIT=1s
+WAIT=1s
 
-readonly OPTS_SHORT=$OPTS_SHORT_COMMON'g'
-readonly OPTS_LONG=$OPTS_LONG_COMMON',gui'
-readonly OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
+OPTS_SHORT=$OPTS_SHORT_COMMON'g'
+OPTS_LONG=$OPTS_LONG_COMMON',gui'
+OPTS_TAB_COMPL=$OPTS_TAB_COMPL_COMMON' --gui'
 
-readonly USAGE=$(cat << USAGE
+USAGE=$(cat << USAGE
 $PROGNAME [-g|--gui] $OPTS_USAGE_COMMON
 
 Typ '$PROGNAME --help' voor meer informatie.
 USAGE
 )
-readonly HELP=$(cat << HELP
+HELP=$(cat << HELP
 $PROGNAME [OPTIE...]
 
 Voeg werkbladachtergronden toe.
@@ -97,7 +97,7 @@ $OPTS_HELP_COMMON
 Typ 'man $PROGNAME' voor meer informatie.
 HELP
 )
-readonly MAN=$(cat << MAN
+MAN=$(cat << MAN
 $MAN_HEADER
 
 ${B}NAAM${N}
@@ -188,7 +188,7 @@ MAN
 # Boolean
 
 # Tekst
-declare TARGETDIR=''
+TARGETDIR=''
 
 ###############################################################################
 # Functies
