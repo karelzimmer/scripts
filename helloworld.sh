@@ -52,6 +52,12 @@ msgmerge --update nl/LC_MESSAGES/helloworld.po helloworld.pot
 # msgstr "" --> "Hallo wereld!"
 # Etc.
 
+# Vind duplicates in PO bestand:
+msguniq --repeated nl/LC_MESSAGES/helloworld.po
+
+# Combineer PO bestanden:
+msgcat --repeated File1.po File2.po --output-file=File3.po
+
 # Maak MO bestand (Machine Object) aan:
 msgfmt --output-file=nl/LC_MESSAGES/helloworld.mo nl/LC_MESSAGES/helloworld.po
 # Wordt gedistribueerd en geinstalleerd met "kz.deb", zonder helloword.po.
@@ -86,24 +92,17 @@ LANGUAGE=en
 
 # Informatie
 # ----------
-
-# cd /bin; grep gettext 2> /dev/null
-# locate .po|grep '.po$'
-# locate .mo|grep '.mo$'
-# download src-versie van een pakket die .po/.mo heeft
-# Hoe werkt gettext met meerdere te vertalen regels?
-
-# Bash:
 # https://wiki.ubuntu-nl.org/community/Vertaalteam/Startersgids-Vertaaltips
 # https://wiki.ubuntu.com/UbuntuDevelopment/Internationalisation/InternationalizationPrimer/Gettext
 # https://stackoverflow.com/questions/2221562/using-gettext-in-bash
 # http://eyesfreelinux.ninja/posts/internationalising-shell-scripts-with-gettext.html
 # https://www.tutorialspoint.com/unix_commands/gettext.htm
 
-# Python:
-# https://inventwithpython.com/blog/2014/12/20/translate-your-python-3-program-with-the-gettext-module/
-# https://phrase.com/blog/posts/translate-python-gnu-gettext/
-# https://phrase.com/blog/posts/learn-gettext-tools-internationalization/
+# cd /bin; grep gettext 2> /dev/null
+# locate .po|grep '.po$'
+# locate .mo|grep '.mo$'
+# download src-versie van een pakket die .po/.mo heeft
+# Hoe werkt gettext met meerdere te vertalen regels?
 
 # Voorbeeld grub-kbdcomp:
 # #!/bin/sh
@@ -119,7 +118,3 @@ LANGUAGE=en
 # ...
 # /usr/share/locale/nl/LC_
 # ...
-
-less /home/karel/.kodi/addons/resource.language.nl_nl/resources/strings.po
-# msgid "Would you like to delete the selected file(s)?[CR]Warning - this action can't be undone!"
-# msgstr "Wilt u deze geselecteerde bestand(en) verwijderen?[CR]Waarschuwing - Deze actie kan niet ongedaan worden gemaakt!"
