@@ -27,28 +27,28 @@ exit
 
 cd ~/scripts || exit
 
-# Maak helloworld.pot (Portable Object Template) aan:
+# Maak POT bestand (Portable Object Template) aan:
 xgettext --language=Shell --output=helloworld.pot helloworld.sh
 mkdir --parents nl/LC_MESSAGES
 # Opnieuw genereren voegt '#, fuzzy' toe?? Wat betekent fuzzy??
 
-# Maak helloworld.po (Portable Object) aan:
+# Maak PO bestand (Portable Object) aan:
 msginit --locale=nl --input=helloworld.pot --output-file=nl/LC_MESSAGES/helloworld.po
 # Herhalen is mogelijk:
 xgettext --language=Shell --join-existing --output=helloworld.pot helloworld.sh
 msgmerge --update nl/LC_MESSAGES/helloworld.po helloworld.pot
 
-# Wijzig 1-malig de helloworld.po:
+# Wijzig 1-malig het PO bestand:
 # Content-Type: text/plain; charset=UTF-8\n" <== UTF-8
 # PACKAGE -> helloworld
 # VERSION -> 0.1
 
-# Wijzig als vertaler de helloworld.po:
+# Wijzig als vertaler het PO bestand:
 # msgid "Hello world!"
 # msgstr "" --> "Hallo wereld!"
 # Etc.
 
-# Maak nl.mo (Machine Object) aan:
+# Maak MO bestand (Machine Object) aan:
 msgfmt --output-file=nl/LC_MESSAGES/helloworld.mo nl/LC_MESSAGES/helloworld.po
 # Wordt gedistribueerd en geinstalleerd met "kz.deb", zonder helloword.po.
 # ── helloworld.pot
@@ -57,11 +57,14 @@ msgfmt --output-file=nl/LC_MESSAGES/helloworld.mo nl/LC_MESSAGES/helloworld.po
 # │   └── LC_MESSAGES
 # │       ├── helloworld.mo
 # │       ├── helloworld.po
+# Voor systeem:
+sudo cp nl/LC_MESSAGES/helloworld.mo /usr/share/locale/nl/LC_MESSAGES
+sudo rm /usr/share/locale/nl/LC_MESSAGES/helloworld.mo 
 
 
 # Testen
 # ------
-echo $LANGUAGE
+echo "$LANGUAGE"
 # nl:en
 # LANGUAGE=nl
 
