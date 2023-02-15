@@ -2,7 +2,7 @@
 ###############################################################################
 # USB-sticks maken. 
 #
-# Geschreven door Karel Zimmer <echo@karelzimmer.nl>.
+# Geschreven door Karel Zimmer <info@karelzimmer.nl>.
 ###############################################################################
 
 PROGRAM_NAME=mkusb
