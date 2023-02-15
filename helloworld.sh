@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2034 # I.v.m. eacaped $PROGNAME t.b.v. eval_gettext.
+# shellcheck disable=SC2034,SC2317
 ###############################################################################
 # Oefening voor gettext, vertaling naar NL. 
 #
@@ -25,31 +25,38 @@ exit
 # ---------
 # sudo apt install gettext
 
-cd ~/scripts
+cd ~/scripts || exit
 
 # Maak helloworld.pot (Portable Object Template) aan:
 xgettext --language=Shell --output=helloworld.pot helloworld.sh
 mkdir --parents nl/LC_MESSAGES
 # Opnieuw genereren voegt '#, fuzzy' toe?? Wat betekent fuzzy??
 
-# Maak helloworld.nl.po (Portable Object) aan:
-msginit --locale=nl --input=helloworld.pot
+# Maak helloworld.po (Portable Object) aan:
+msginit --locale=nl --input=helloworld.pot --output-file=nl/LC_MESSAGES/helloworld.po
 # Herhalen is mogelijk:
 xgettext --language=Shell --join-existing --output=helloworld.pot helloworld.sh
-msgmerge --update helloworld.nl.po helloworld.pot
+msgmerge --update nl/LC_MESSAGES/helloworld.po helloworld.pot
 
-# Wijzig 1-malig de helloworld.nl.po:
+# Wijzig 1-malig de helloworld.po:
 # Content-Type: text/plain; charset=UTF-8\n" <== UTF-8
 # PACKAGE -> helloworld
 # VERSION -> 0.1
 
-# Wijzig als vertaler de helloworld.nl.po:
+# Wijzig als vertaler de helloworld.po:
 # msgid "Hello world!"
 # msgstr "" --> "Hallo wereld!"
+# Etc.
 
 # Maak nl.mo (Machine Object) aan:
-msgfmt --output-file=./nl/LC_MESSAGES/helloworld.mo helloworld.nl.po
-# Wordt gedistribueerd en geinstalleerd met "kz.deb".
+msgfmt --output-file=nl/LC_MESSAGES/helloworld.mo nl/LC_MESSAGES/helloworld.po
+# Wordt gedistribueerd en geinstalleerd met "kz.deb", zonder helloword.po.
+# ── helloworld.pot
+# ├── helloworld.sh
+# ├── nl
+# │   └── LC_MESSAGES
+# │       ├── helloworld.mo
+# │       ├── helloworld.po
 
 
 # Testen
