@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034 # I.v.m. eacaped $PROGNAME t.b.v. eval_gettext.
 ###############################################################################
 # Oefening voor gettext, vertaling naar NL. 
 #
@@ -9,7 +10,7 @@ export TEXTDOMAIN=helloworld
 # export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAINDIR=/home/karel/scripts
 
-. /usr/bin/gettext.sh
+source /usr/bin/gettext.sh
 
 PROGNAME=$0
 msg=$(eval_gettext "Program name: \$PROGNAME")
@@ -18,22 +19,24 @@ echo "$msg"; echo
 msg="$(gettext 'Hello world!')"
 echo "$msg"
 
+exit
+
 # Werkwijze
 # ---------
 # sudo apt install gettext
 
-# cd ~/scripts
+cd ~/scripts
 
 # Maak helloworld.pot (Portable Object Template) aan:
-# xgettext --language=Shell --output=helloworld.pot helloworld.sh
-# mkdir --parents nl/LC_MESSAGES
+xgettext --language=Shell --output=helloworld.pot helloworld.sh
+mkdir --parents nl/LC_MESSAGES
 # Opnieuw genereren voegt '#, fuzzy' toe?? Wat betekent fuzzy??
 
 # Maak helloworld.nl.po (Portable Object) aan:
-# msginit --locale=nl --input=helloworld.pot
+msginit --locale=nl --input=helloworld.pot
 # Herhalen is mogelijk:
-# xgettext --language=Shell --output=helloworld.pot helloworld.sh
-# msgmerge --update helloworld.nl.po helloworld.pot
+xgettext --language=Shell --join-existing --output=helloworld.pot helloworld.sh
+msgmerge --update helloworld.nl.po helloworld.pot
 
 # Wijzig 1-malig de helloworld.nl.po:
 # Content-Type: text/plain; charset=UTF-8\n" <== UTF-8
@@ -45,23 +48,23 @@ echo "$msg"
 # msgstr "" --> "Hallo wereld!"
 
 # Maak nl.mo (Machine Object) aan:
-# msgfmt --output-file=./nl/LC_MESSAGES/helloworld.mo helloworld.nl.po
+msgfmt --output-file=./nl/LC_MESSAGES/helloworld.mo helloworld.nl.po
 # Wordt gedistribueerd en geinstalleerd met "kz.deb".
 
 
 # Testen
 # ------
-# echo $LANGUAGE
+echo $LANGUAGE
 # nl:en
 # LANGUAGE=nl
 
-# karel@pc06:~/scripts$ ./helloworld.sh 
+./helloworld.sh 
 # Programmanaam: ./helloworld.sh
 #
 # Hallo wereld!
 
-# LANGUAGE=en
-# karel@pc06:~/scripts$ ./helloworld.sh 
+LANGUAGE=en
+./helloworld.sh 
 # Program name: ./helloworld.sh
 #
 # Hello world!
@@ -88,24 +91,13 @@ echo "$msg"
 # https://phrase.com/blog/posts/translate-python-gnu-gettext/
 # https://phrase.com/blog/posts/learn-gettext-tools-internationalization/
 
-# Voorbeeld GRUB op lsrv0100:
+# Voorbeeld grub-kbdcomp:
 # #!/bin/sh
-
-# prefix="/usr"
-# exec_prefix="/usr"
-# bindir="/usr/bin"
-# datarootdir="/usr/share"ç
-# datadir="/usr/share"
-# if [ "x$pkgdatadir" = x ]; then
-#  pkgdatadir="${datadir}/grub"
-# fi
-
-# grub_mklayout="${bindir}/
-
-# ckbcomp_options=""
-
+# ...
+# datarootdir="/usr/share"
+# ...
 # export TEXTDOMAIN=grub
-# export TEXTDOMAINDIR="${datarootdir}/ <==
+# export TEXTDOMAINDIR="${datarootdir}/
 # ...
 # print_option_help "-h, --help" "$(gettext "print this message and exit")"
 # print_option_help "-v, --version" "$(gettext "print the version information and exit")"
