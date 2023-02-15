@@ -19,6 +19,10 @@ echo "$msg"; echo
 msg="$(gettext 'Hello world!')"
 echo "$msg"
 
+printf '%s\n' "$(gettext 'Use'): $PROGNAME"
+
+printf '%b\n' "$(gettext 'Sentence\nover\nfour\nlines.')"
+
 exit
 
 # Werkwijze
@@ -115,3 +119,7 @@ LANGUAGE=en
 # ...
 # /usr/share/locale/nl/LC_
 # ...
+
+less /home/karel/.kodi/addons/resource.language.nl_nl/resources/strings.po
+# msgid "Would you like to delete the selected file(s)?[CR]Warning - this action can't be undone!"
+# msgstr "Wilt u deze geselecteerde bestand(en) verwijderen?[CR]Waarschuwing - Deze actie kan niet ongedaan worden gemaakt!"
