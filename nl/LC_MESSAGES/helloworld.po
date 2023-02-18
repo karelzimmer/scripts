@@ -17,18 +17,20 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Program name: $program_name"
-msgstr "Programmanaam: $program_name"
-
+#: helloworld.sh:18
+#, sh-format
 msgid "Program name: "
 msgstr "Programmanaam: "
 
+#: helloworld.sh:20
 msgid "Use"
 msgstr "Gebruik"
 
+#: helloworld.sh:22 helloworld.py:28
 msgid "Hello world!"
 msgstr "Hallo wereld!"
 
+#: helloworld.sh:24 helloworld.py:31
 msgid ""
 "Sentence\n"
 "\n"
@@ -50,15 +52,19 @@ msgstr ""
 "\n"
 "regels."
 
+#: helloworld.sh:34
 msgid "Sentence\\nover\\nfour\\nlines."
 msgstr "Zin\\nover\\nvier\\nregels."
 
+#: helloworld.py:20
 msgid "Program name: {}"
 msgstr "Programmanaam: {}"
 
+#: helloworld.py:25
 msgid "Use: {}"
 msgstr "Gebruik: {}"
 
+#: helloworld.py:42
 msgid ""
 "Sentence\n"
 "over\n"
