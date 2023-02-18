@@ -1,5 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC2034
 ###############################################################################
 # Oefening voor gettext, vertaling naar NL. 
 #
@@ -12,9 +11,11 @@ export TEXTDOMAINDIR=/home/karel/scripts
 
 source /usr/bin/gettext.sh
 
-program_name=$0
+program_name=helloworld.sh
 
-printf '%s\n\n' "$(eval_gettext "Program name: \$program_name")"
+# printf '%s\n\n' "$(eval_gettext "Program name: \$program_name")"
+# Beter:
+printf "%s$program_name\n\n" "$(eval_gettext "Program name: ")"
 
 printf '%s\n\n' "$(gettext 'Use'): $program_name"
 
