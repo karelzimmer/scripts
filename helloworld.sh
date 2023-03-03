@@ -11,37 +11,20 @@ export TEXTDOMAINDIR=/home/karel/scripts
 
 source /usr/bin/gettext.sh
 
+# shellcheck disable=SC2034
 program_name=helloworld.sh
 
-# printf '%s\n\n' "$(eval_gettext "Program name: \$program_name")"
-# Beter:
-printf "%s$program_name\n\n" "$(eval_gettext "Program name: ")"
+printf '%s\n' "$(eval_gettext "Program name: \$program_name")"
+printf '\n'
 
-printf '%s\n\n' "$(gettext 'Use'): $program_name"
-
-printf '%s\n\n' "$(gettext 'Hello world!')"
-
-printf '%b\n\n' "$(gettext 'Sentence
-
-with
-
-spaces
-
-between the
-
-lines.')"
-
-printf '%b\n\n' "$(gettext 'Sentence\nover\nfour\nlines.')"
-
-exit
+printf '%s\n' "$(gettext 'Hello world!')"
 
 # Informatie
 # ----------
+# https://www.gnu.org/software/gettext/manual/gettext.html
 # https://wiki.ubuntu-nl.org/community/Vertaalteam/Startersgids-Vertaaltips
 # https://wiki.ubuntu.com/UbuntuDevelopment/Internationalisation/InternationalizationPrimer/Gettext
-# https://stackoverflow.com/questions/2221562/using-gettext-in-bash
 # http://eyesfreelinux.ninja/posts/internationalising-shell-scripts-with-gettext.html
-# https://www.tutorialspoint.com/unix_commands/gettext.htm
 
 # cd /bin; grep gettext 2> /dev/null
 # locate .po|grep '.po$'

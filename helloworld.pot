@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-02-18 09:24+0100\n"
+"POT-Creation-Date: 2023-02-22 08:05+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,48 +17,12 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: helloworld.sh:22 helloworld.py:28
+#, sh-format
+msgid "Program name: $program_name"
+msgstr ""
+
 msgid "Hello world!"
 msgstr ""
 
-#: helloworld.sh:18
-#, sh-format
-msgid "Program name: "
-msgstr ""
-
-#: helloworld.py:20
 msgid "Program name: {}"
-msgstr ""
-
-#: helloworld.sh:24 helloworld.py:31
-msgid ""
-"Sentence\n"
-"\n"
-"with\n"
-"\n"
-"spaces\n"
-"\n"
-"between the\n"
-"\n"
-"lines."
-msgstr ""
-
-#: helloworld.py:42
-msgid ""
-"Sentence\n"
-"over\n"
-"four\n"
-"lines."
-msgstr ""
-
-#: helloworld.sh:34
-msgid "Sentence\\nover\\nfour\\nlines."
-msgstr ""
-
-#: helloworld.sh:20
-msgid "Use"
-msgstr ""
-
-#: helloworld.py:25
-msgid "Use: {}"
 msgstr ""
