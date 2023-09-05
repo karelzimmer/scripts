@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Test SIGPIPE i.c.m. set -o pipefail ==> SIGPIPE overbodig als pipefail
 # http://www.pixelbeat.org/programming/sigpipe_handling.html

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Ref: https://developer.chrome.com/docs/extensions/mv3/external_extensions/#preference-linux
 # Ref: https://askubuntu.com/questions/1063331/how-to-install-google-chrome-extensions-though-terminal

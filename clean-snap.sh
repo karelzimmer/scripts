@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 # Removes old revisions of snaps
 # CLOSE ALL SNAPS BEFORE RUNNING THIS
 set -eu

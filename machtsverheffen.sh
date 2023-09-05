@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/usr/bin/bash 
 
 # NOVI: Datastructuren en Algoritmen: Dynamic Programming en Recursion
 # Machtsverheffen, bereken 5^4 zonder machtsverheffen te gebruiken.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 dialog  --title 'Message'           \
         --msgbox 'Hello World!'    \

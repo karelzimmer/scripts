@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Vanaf home directory worden alle directories en files gezocht die ongeldige tekens bevatten
 

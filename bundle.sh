@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 ###############################################################################
 # Bestand:   bundle.sh                                                      
 # Doel:      Script voor het bundelen van bestanden tot een shell-archief.  

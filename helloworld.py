@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 ###############################################################################
 # Oefening voor gettext, vertaling naar NL. 
 #

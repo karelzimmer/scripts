@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Maak 100 subdirs aan met ieder 26 lege bestanden
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 ###############################################################################
 # Oefening voor gettext, vertaling naar NL. 
 #

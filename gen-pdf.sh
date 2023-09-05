@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Generate PDFs w/lowriter (ilo enscript + ps2pfd).
 

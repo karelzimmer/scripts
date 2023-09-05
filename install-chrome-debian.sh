@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Zie ook ~/ansible/install-chrome-debian.yml
 

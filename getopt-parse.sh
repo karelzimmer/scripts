@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # A small example program for using the new getopt(1) program.
 # This program will only work with bash(1)

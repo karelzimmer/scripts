@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/usr/bin/bash 
 
 # Fibonacci sequence 
 # Elk element van de rij is steeds de som van de twee voorgaande elementen,

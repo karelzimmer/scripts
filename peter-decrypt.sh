@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 my_secret_key=5
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 clear
 echo "This is information provided by mysystem.sh. Program starts now."
