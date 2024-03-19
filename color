@@ -1,0 +1,22 @@
+#! /usr/bin/env bash
+
+# Ref:
+# 1. https://dev.to/ifenna__/adding-colors-to-bash-scripts-48g4
+# 2. https://misc.flogisoft.com/bash/tip_colors_and_formatting
+
+RED="31"
+GREEN="32"
+BOLDGREEN="\033[1;${GREEN}m"
+ITALICRED="\033[3;${RED}m"
+BOLDRED="\033[1;${RED}m"
+ENDCOLOR="\033[0m"
+
+echo -e "${BOLDGREEN}Behold! Bold, green text.${ENDCOLOR}"
+echo -e "${BOLDRED}Bold red${ENDCOLOR}"
+echo -e "${ITALICRED}Italian italics${ENDCOLOR}"
+echo -e "${ITALICRED}\033[4mItalian italics underlined${ENDCOLOR}"
+echo -e "${ITALICRED}\033[4mItalian italics underlined${ENDCOLOR}"
+echo -e "${ITALICRED}\033[2mItalian italics faint${ENDCOLOR}"
+echo -e "${ITALICRED}\033[5mItalian italics blink${ENDCOLOR}"
+echo -e "${ITALICRED}\033[7mItalian italics reverse${ENDCOLOR}"
+echo -e "${ITALICRED}\033[8mItalian italics hidden${ENDCOLOR}"

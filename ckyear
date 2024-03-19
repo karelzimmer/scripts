@@ -1,0 +1,83 @@
+#!/usr/bin/bash
+set -o errexit
+set -o nounset
+
+# ckyear: check for (copyright) (new) year 
+#         after changing last year in vscode, e.g.
+#         [1] change ' 2023' to '2023-2024' 
+#         [2] change '-2023' to '-2024'
+#         N.B. Checklists and website will go automatic (YYYY-2024)
+
+# *** Suppose it is now the new year 2024 ***
+
+# "ckyear ' 2023'" will find:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2023.
+# must be changed to:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2023-2024.
+
+# and:
+# "ckyear '-2023'" will find:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2009-2023.
+# must be changed to:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2009-2024.
+
+# and:
+# "ckyear" will just search for last year (2023) and will find:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2023.
+# must be changed to:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2023-2024.
+# and will find:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2009-2023.
+# must be changed to:
+# # <https://creativecommons.org/publicdomain/zero/1.0>, 2009-2024.
+
+
+last_year=${1:-$(date '+%Y' --date='last year')}
+output=/tmp/ckyear.log
+
+cd "$HOME"
+
+{
+    echo "ckyear [year]: check for (copyright) year"
+    echo
+    echo "Directory: $HOME"
+    echo "Last year: '$last_year'"
+    echo 
+} > $output
+
+while read -r file; do
+    case $file in
+        *.deb|*.gif|*.ico|*.pdf|*.png|*.svg)
+            continue
+            ;;
+        *kz-docs/*.odt|*kz-uploads/robots.txt)
+            continue
+            ;;
+        *)
+            grep=$(
+                grep --fixed-strings --regexp="$last_year" "$file" || true
+                )
+            if [[ -n $grep ]]; then
+                printf '%s\n%s\n\n' "$file" "$grep" >> $output
+            fi
+            ;;
+    esac
+done < <(
+        find ./kz-*                 \
+        -type f                     \
+        -not -path './kz-deb/*'     \
+        -not -path './*/.git*'      \
+        -not -path './*/dist*'      \
+        -not -path '*/__pycache__*' \
+        -not -name kz.mo            \
+        -not -name kz.po            \
+        -not -name kz.pot           \
+        -not -name license          \
+        -not -name LICENSE          \
+        -not -name README           \
+        -not -name README.md        \
+        -print                      |
+        sort
+        )
+
+less $output
